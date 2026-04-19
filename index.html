@@ -786,16 +786,140 @@
       renderDots();
     }
 
-    // ── Boot (Step 2 preview — handlers come in Step 3) ───────
+    // ── Action handler (approve / deny) ───────────────────────
+    function act(choice) {
+      const ev  = queue[qIdx];
+      const res = choice === "approve" ? ev.onApprove() : ev.onDeny();
+      addLog(res.msg, res.kind);
+      qIdx++;
+      renderStats();
+      renderEvent();
+      if (checkLose()) return;
+    }
+
+    // ── End-of-day: collect payments, pay interest, overhead ──
+    function advanceDay() {
+      let loanIncome = 0;
+
+      bank.loanBook = bank.loanBook.filter(loan => {
+        const repayment = loan.principal / loan.termDays;
+        bank.cash     += loan.dailyPay;
+        bank.loansOut -= repayment;
+        bank.profit   += loan.dailyPay - repayment;
+        loanIncome    += loan.dailyPay;
+        loan.daysLeft--;
+        return loan.daysLeft > 0;
+      });
+
+      bank.loansOut = Math.max(0, bank.loansOut);
+
+      const depInt = bank.deposits * 0.000055;
+      bank.cash   -= depInt;
+      bank.profit -= depInt;
+      bank.cash   -= DAILY_OVERHEAD;
+      bank.profit -= DAILY_OVERHEAD;
+
+      addLog(
+        `Day ${bank.day} closed. Loan income +${fmt(loanIncome)}, overhead −${fmt(DAILY_OVERHEAD)}.`,
+        "neutral"
+      );
+
+      bank.day++;
+
+      if (bank.day > WIN_DAY) { checkWin(); return; }
+      if (checkLose()) return;
+
+      buildDay();
+      renderStats();
+      renderEvent();
+
+      // Scroll event card into view on mobile
+      document.getElementById("eventCard").scrollIntoView({ behavior:"smooth", block:"nearest" });
+    }
+
+    // ── Win / lose checks ──────────────────────────────────────
+    function checkLose() {
+      if (bank.cash <= 0) {
+        showOverlay(
+          "lose", "💸", "Bankrupt!",
+          "Your cash reserves hit zero. The regulators have taken over.",
+          `<div class="overlay-stat">Reached Day <strong>${bank.day}</strong> of ${WIN_DAY}</div>
+           <div class="overlay-stat">Final assets: <strong>${fmt(totalAssets())}</strong></div>`
+        );
+        return true;
+      }
+      if (bank.rep <= 15) {
+        showOverlay(
+          "lose", "🏃", "Bank Run!",
+          "Customers lost faith and withdrew everything. The bank is finished.",
+          `<div class="overlay-stat">Reached Day <strong>${bank.day}</strong> of ${WIN_DAY}</div>
+           <div class="overlay-stat">Final reputation: <strong>${bank.rep}/100</strong></div>`
+        );
+        return true;
+      }
+      return false;
+    }
+
+    function checkWin() {
+      const assetsOk = totalAssets() >= WIN_ASSETS;
+      const repOk    = bank.rep      >= WIN_REP;
+
+      if (assetsOk && repOk) {
+        showOverlay(
+          "win", "🏆", "Outstanding Manager!",
+          "You grew the bank and kept customers happy for 30 days.",
+          `<div class="overlay-stat">Final assets: <strong>${fmt(totalAssets())}</strong></div>
+           <div class="overlay-stat">Total profit: <strong>${fmt(bank.profit)}</strong></div>
+           <div class="overlay-stat">Reputation: <strong>${bank.rep}/100</strong></div>`
+        );
+      } else {
+        const why = [];
+        if (!assetsOk) why.push(`needed ${fmt(WIN_ASSETS)} in assets (you had ${fmt(totalAssets())})`);
+        if (!repOk)    why.push(`needed reputation ≥ ${WIN_REP} (you had ${bank.rep})`);
+        showOverlay(
+          "lose", "📊", "Time's Up",
+          "You survived 30 days but didn't hit all targets: " + why.join("; ") + ".",
+          `<div class="overlay-stat">Assets: <strong>${fmt(totalAssets())}</strong></div>
+           <div class="overlay-stat">Reputation: <strong>${bank.rep}/100</strong></div>`
+        );
+      }
+    }
+
+    // ── Overlay helper ─────────────────────────────────────────
+    function showOverlay(kind, icon, title, body, statsHtml) {
+      document.getElementById("overlayIcon").textContent    = icon;
+      document.getElementById("overlayTitle").textContent   = title;
+      document.getElementById("overlayTitle").className     = `overlay-title ${kind}`;
+      document.getElementById("overlayBody").textContent    = body;
+      document.getElementById("overlayStats").innerHTML     = statsHtml;
+      document.getElementById("overlay").classList.add("show");
+    }
+
+    // ── Log ────────────────────────────────────────────────────
+    function addLog(msg, kind) {
+      const list = document.getElementById("logList");
+      const el   = document.createElement("div");
+      el.className = `log-item ${kind}`;
+      el.innerHTML = `<div class="day-tag">Day ${bank.day}</div>${msg}`;
+      list.prepend(el);
+      while (list.children.length > 25) list.removeChild(list.lastChild);
+    }
+
+    // ── Restart ────────────────────────────────────────────────
+    function restartGame() {
+      document.getElementById("overlay").classList.remove("show");
+      document.getElementById("logList").innerHTML = "";
+      initBank();
+      buildDay();
+      renderStats();
+      renderEvent();
+    }
+
+    // ── Boot ───────────────────────────────────────────────────
     initBank();
     buildDay();
     renderStats();
     renderEvent();
-
-    // Stubs so the page doesn't crash if buttons are tapped
-    function act(choice)   { console.log("act:", choice, "— wired in Step 3"); }
-    function advanceDay()  { console.log("advanceDay — wired in Step 3"); }
-    function restartGame() { console.log("restartGame — wired in Step 3"); }
   </script>
 
 </body>
