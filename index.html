@@ -425,8 +425,377 @@
   </div>
 
   <script>
-    // JavaScript will be added in Steps 2 and 3
-    console.log("Shell loaded — JS coming in Steps 2 & 3");
+    // ── Constants ──────────────────────────────────────────────
+    const STARTING_CASH       = 500_000;
+    const STARTING_DEPOSITS   = 300_000;
+    const STARTING_REP        = 60;
+    const DAILY_OVERHEAD      = 2_000;
+    const WIN_DAY             = 30;
+    const WIN_ASSETS          = 800_000;
+    const WIN_REP             = 55;
+
+    // ── Bank state ─────────────────────────────────────────────
+    let bank = {};
+
+    function initBank() {
+      bank = {
+        cash:       STARTING_CASH,
+        deposits:   STARTING_DEPOSITS,
+        loansOut:   0,
+        loanBook:   [],   // active loans
+        rep:        STARTING_REP,
+        day:        1,
+        profit:     0,
+      };
+    }
+
+    const totalAssets = () => bank.cash + bank.loansOut;
+    const netWorth    = () => totalAssets() - bank.deposits;
+
+    // ── Utilities ──────────────────────────────────────────────
+    const fmt     = n   => '$' + Math.round(n).toLocaleString();
+    const pick    = arr => arr[Math.floor(Math.random() * arr.length)];
+    const randInt = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+
+    // ── Data pools ─────────────────────────────────────────────
+    const NAMES = [
+      "Alice Mwangi","Bob Okonkwo","Carmen Reyes","David Patel",
+      "Elena Ivanova","Frank Johansson","Grace Liu","Hiro Tanaka",
+      "Isabelle Morin","James Osei","Keiko Sato","Liam Nkosi",
+    ];
+
+    const PURPOSES = [
+      "a new business","a home renovation","a car purchase",
+      "an education fund","a medical expense","farm equipment",
+      "a restaurant opening","solar panel installation",
+    ];
+
+    const DEPOSITORS = [
+      "Sunrise Corp","Green Valley Farm","City Pension Fund",
+      "Dr. Al-Rashid","The Goldstein Trust","Metro Retailers",
+      "Harbour Logistics","Blue Peak Holdings",
+    ];
+
+    const RANDOM_EVENTS = [
+      {
+        icon:"📋", title:"Audit Passed",
+        desc:"Regulators gave your books a clean bill of health.",
+        effect: b => { b.rep = Math.min(100, b.rep + 5); },
+        msg: "Reputation +5", kind:"good",
+      },
+      {
+        icon:"📰", title:"Positive Press",
+        desc:"A reporter praised your community lending program.",
+        effect: b => { b.rep = Math.min(100, b.rep + 3); },
+        msg: "Reputation +3", kind:"good",
+      },
+      {
+        icon:"📉", title:"Economic Downturn",
+        desc:"Markets fell. Several borrowers are struggling to repay.",
+        effect: b => {
+          const loss = Math.min(b.loansOut, 15_000);
+          b.loansOut -= loss;
+          b.profit   -= loss;
+        },
+        msg: "Loan write-down: −$15,000", kind:"bad",
+      },
+      {
+        icon:"🔫", title:"Robbery Attempt",
+        desc:"Armed robbers hit the vault. Security held them off — barely.",
+        effect: b => {
+          const loss = Math.min(b.cash, 8_000);
+          b.cash -= loss;
+          b.profit -= loss;
+          b.rep = Math.max(0, b.rep - 4);
+        },
+        msg: "Cash −$8,000 · Reputation −4", kind:"bad",
+      },
+      {
+        icon:"💡", title:"Central Bank Rate Cut",
+        desc:"Lower rates mean your deposit interest costs drop slightly.",
+        effect: b => { b.deposits = Math.max(0, b.deposits - 5_000); },
+        msg: "Deposit liability −$5,000", kind:"good",
+      },
+      {
+        icon:"🔍", title:"Fraud Attempt Foiled",
+        desc:"A sharp teller caught a forged cheque before it cleared.",
+        effect: () => {},
+        msg: "Crisis averted — no loss.", kind:"neutral",
+      },
+      {
+        icon:"⚠️", title:"Compliance Fine",
+        desc:"Regulators flagged a paperwork issue. You must pay a fine.",
+        effect: b => {
+          b.cash   -= 5_000;
+          b.profit -= 5_000;
+          b.rep = Math.max(0, b.rep - 3);
+        },
+        msg: "Fine −$5,000 · Reputation −3", kind:"bad",
+      },
+      {
+        icon:"🌟", title:"VIP Client Interest",
+        desc:"A wealthy investor heard great things. Word is spreading.",
+        effect: b => { b.rep = Math.min(100, b.rep + 4); },
+        msg: "Reputation +4", kind:"good",
+      },
+    ];
+
+    // ── Event factories ────────────────────────────────────────
+    // Each event returns an object with: icon, title, details[],
+    // approveLabel, denyLabel (optional), single (bool),
+    // canApprove(), onApprove(), onDeny()
+
+    function makeLoanEvent() {
+      const name    = pick(NAMES);
+      const purpose = pick(PURPOSES);
+      const amount  = randInt(5, 80) * 1_000;
+      const risk    = pick(["low","medium","high"]);
+      const termMo  = pick([6, 12, 24, 36]);
+      const termDays = termMo * 30;
+      const rates   = { low: 0.06, medium: 0.12, high: 0.20 };
+      const rate    = rates[risk];
+      const totalInt = amount * rate * (termMo / 12);
+      const dailyPay = (amount + totalInt) / termDays;
+      const riskColour = { low:"green", medium:"yellow", high:"red" }[risk];
+
+      return {
+        icon: "📝",
+        eventType: "Loan Application",
+        title: name,
+        details: [
+          { key:"Purpose",  val: purpose },
+          { key:"Amount",   val: fmt(amount) },
+          { key:"Risk",     val: risk.toUpperCase(), cls: riskColour },
+          { key:"Term",     val: `${termMo} months` },
+          { key:"Interest", val: `${(rate*100).toFixed(0)}% annual → ${fmt(totalInt)} total` },
+          { key:"Your income", val: `${fmt(dailyPay)}/day`, cls:"green" },
+        ],
+        approveLabel: "✅ Approve",
+        denyLabel:    "❌ Deny",
+        single: false,
+        canApprove: () => bank.cash >= amount,
+        cantMsg: "Not enough cash to fund this loan.",
+        onApprove() {
+          bank.cash     -= amount;
+          bank.loansOut += amount;
+          bank.loanBook.push({ principal: amount, termDays, daysLeft: termDays, dailyPay });
+          const bump = risk === "low" ? 2 : 1;
+          bank.rep = Math.min(100, bank.rep + bump);
+          return { msg:`Loan of ${fmt(amount)} approved. Reputation +${bump}.`, kind:"good" };
+        },
+        onDeny() {
+          if (risk === "low") {
+            bank.rep = Math.max(0, bank.rep - 2);
+            return { msg:"Low-risk applicant turned away. Reputation −2.", kind:"warn" };
+          }
+          return { msg:"Risky applicant denied. Sensible call.", kind:"neutral" };
+        },
+      };
+    }
+
+    function makeDepositEvent() {
+      const who    = pick(DEPOSITORS);
+      const amount = randInt(20, 150) * 1_000;
+      return {
+        icon: "💰",
+        eventType: "Deposit Offer",
+        title: who,
+        details: [
+          { key:"Amount", val: fmt(amount) },
+          { key:"Effect", val: "Boosts cash, increases liability" },
+        ],
+        approveLabel: "✅ Accept",
+        denyLabel:    "❌ Decline",
+        single: false,
+        canApprove: () => true,
+        onApprove() {
+          bank.cash     += amount;
+          bank.deposits += amount;
+          bank.rep = Math.min(100, bank.rep + 1);
+          return { msg:`Deposit of ${fmt(amount)} accepted. Reputation +1.`, kind:"good" };
+        },
+        onDeny() {
+          return { msg:`Deposit from ${who} declined.`, kind:"neutral" };
+        },
+      };
+    }
+
+    function makeWithdrawalEvent() {
+      const amount = randInt(5, 50) * 1_000;
+      const canPay = () => bank.cash >= amount;
+      return {
+        icon: "🏧",
+        eventType: "Withdrawal Request",
+        title: `${fmt(amount)} requested`,
+        details: [
+          { key:"Amount", val: fmt(amount) },
+          { key:"Status", val: canPay() ? "Funds available" : "⚠️ Low cash!", cls: canPay() ? "green" : "red" },
+        ],
+        approveLabel: "✅ Process",
+        denyLabel:    "❌ Refuse",
+        single: false,
+        canApprove: () => true,
+        onApprove() {
+          if (!canPay()) {
+            bank.rep = Math.max(0, bank.rep - 10);
+            return { msg:`Couldn't pay ${fmt(amount)} — funds short. Reputation −10.`, kind:"bad" };
+          }
+          bank.cash     -= amount;
+          bank.deposits  = Math.max(0, bank.deposits - amount);
+          return { msg:`Withdrawal of ${fmt(amount)} processed.`, kind:"neutral" };
+        },
+        onDeny() {
+          bank.rep = Math.max(0, bank.rep - 6);
+          return { msg:`Refused withdrawal. Customer furious. Reputation −6.`, kind:"bad" };
+        },
+      };
+    }
+
+    function makeRandomEvent() {
+      const ev = pick(RANDOM_EVENTS);
+      return {
+        icon: ev.icon,
+        eventType: "Random Event",
+        title: ev.title,
+        details: [{ key:"Detail", val: ev.desc }],
+        approveLabel: "Acknowledge",
+        single: true,
+        canApprove: () => true,
+        onApprove() {
+          ev.effect(bank);
+          return { msg: ev.msg, kind: ev.kind };
+        },
+      };
+    }
+
+    // ── Build a day's event queue ──────────────────────────────
+    let queue = [];   // events for today
+    let qIdx  = 0;   // which event we're on
+
+    function buildDay() {
+      const events = [];
+      if (Math.random() < 0.85) events.push(makeLoanEvent());
+      if (Math.random() < 0.60) events.push(makeLoanEvent());
+      if (Math.random() < 0.65) events.push(makeDepositEvent());
+      events.push(makeWithdrawalEvent());
+      if (Math.random() < 0.45) events.push(makeRandomEvent());
+      // shuffle
+      queue = events.sort(() => Math.random() - 0.5);
+      qIdx  = 0;
+    }
+
+    // ── Render: stats ──────────────────────────────────────────
+    function renderStats() {
+      const r = bank.rep;
+      const nw = netWorth();
+
+      document.getElementById("dayLabel").textContent    = `Day ${bank.day} of ${WIN_DAY}`;
+      document.getElementById("netWorth").textContent    = fmt(nw);
+      document.getElementById("netWorth").style.color    = nw >= 0 ? "var(--green)" : "var(--red)";
+      document.getElementById("statCash").textContent    = fmt(bank.cash);
+      document.getElementById("statCash").style.color    =
+        bank.cash < 20_000 ? "var(--red)" : bank.cash < 80_000 ? "var(--yellow)" : "var(--green)";
+      document.getElementById("statLoans").textContent   = fmt(bank.loansOut);
+      document.getElementById("statDeposits").textContent = fmt(bank.deposits);
+
+      const profEl = document.getElementById("statProfit");
+      profEl.textContent  = fmt(bank.profit);
+      profEl.style.color  = bank.profit >= 0 ? "var(--green)" : "var(--red)";
+
+      document.getElementById("statRep").textContent = `${r} / 100`;
+      document.getElementById("statRep").style.color =
+        r >= WIN_REP ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
+
+      const fill = document.getElementById("repFill");
+      fill.style.width = `${r}%`;
+      fill.style.background =
+        r >= WIN_REP ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
+    }
+
+    // ── Render: progress dots ──────────────────────────────────
+    function renderDots() {
+      const container = document.getElementById("dots");
+      container.innerHTML = queue.map((_, i) => {
+        const cls = i < qIdx ? "done" : i === qIdx ? "current" : "";
+        return `<div class="dot ${cls}"></div>`;
+      }).join("");
+    }
+
+    // ── Render: event card ─────────────────────────────────────
+    function renderEvent() {
+      const card = document.getElementById("eventCard");
+
+      // All events for the day handled — show end-of-day summary
+      if (qIdx >= queue.length) {
+        const loanIncome = bank.loanBook.reduce((s, l) => s + l.dailyPay, 0);
+        const depInt     = bank.deposits * 0.000055;
+        card.innerHTML = `
+          <div class="event-head">
+            <div class="event-icon">🌙</div>
+            <div class="event-meta">
+              <div class="type">End of Day</div>
+              <div class="title">Day ${bank.day} Wrap-up</div>
+            </div>
+          </div>
+          <div class="event-body">
+            <div class="eod-row"><span class="key">Loan repayments in</span><span style="color:var(--green)">+${fmt(loanIncome)}</span></div>
+            <div class="eod-row"><span class="key">Deposit interest out</span><span style="color:var(--red)">−${fmt(depInt)}</span></div>
+            <div class="eod-row"><span class="key">Daily overhead</span><span style="color:var(--red)">−${fmt(DAILY_OVERHEAD)}</span></div>
+          </div>
+          <div class="btn-row one-col">
+            <button class="btn btn-purple" onclick="advanceDay()">Next Day →</button>
+          </div>`;
+        document.getElementById("dots").innerHTML = "";
+        return;
+      }
+
+      const ev = queue[qIdx];
+      const ok = ev.canApprove();
+
+      const detailsHtml = ev.details.map(d =>
+        `<div class="detail-row">
+           <span class="key">${d.key}</span>
+           <span class="val ${d.cls||''}">${d.val}</span>
+         </div>`
+      ).join("");
+
+      const cantHtml = (!ok && ev.cantMsg)
+        ? `<div class="cant-fund">${ev.cantMsg}</div>` : "";
+
+      const btnsHtml = ev.single
+        ? `<div class="btn-row one-col">
+             <button class="btn btn-green" onclick="act('approve')">${ev.approveLabel}</button>
+           </div>`
+        : `${cantHtml}
+           <div class="btn-row two-col">
+             <button class="btn btn-dark"  onclick="act('deny')">${ev.denyLabel}</button>
+             <button class="btn btn-green" onclick="act('approve')" ${!ok?"disabled":""}>${ev.approveLabel}</button>
+           </div>`;
+
+      card.innerHTML = `
+        <div class="event-head">
+          <div class="event-icon">${ev.icon}</div>
+          <div class="event-meta">
+            <div class="type">${ev.eventType}</div>
+            <div class="title">${ev.title}</div>
+          </div>
+        </div>
+        <div class="event-body">${detailsHtml}</div>
+        ${btnsHtml}`;
+
+      renderDots();
+    }
+
+    // ── Boot (Step 2 preview — handlers come in Step 3) ───────
+    initBank();
+    buildDay();
+    renderStats();
+    renderEvent();
+
+    // Stubs so the page doesn't crash if buttons are tapped
+    function act(choice)   { console.log("act:", choice, "— wired in Step 3"); }
+    function advanceDay()  { console.log("advanceDay — wired in Step 3"); }
+    function restartGame() { console.log("restartGame — wired in Step 3"); }
   </script>
 
 </body>
