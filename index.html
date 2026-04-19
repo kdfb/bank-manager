@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Bank Manager</title>
+  <style>
+    /* ── Reset & tokens ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f1923;
+      --card:    #1a2634;
+      --border:  #263545;
+      --green:   #2ecc71;
+      --red:     #e74c3c;
+      --yellow:  #f1c40f;
+      --blue:    #3498db;
+      --purple:  #9b59b6;
+      --text:    #ecf0f1;
+      --muted:   #7f8c8d;
+      --radius:  14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: 32px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #111e2b;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left h1 {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--blue);
+    }
+
+    .header-left p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .header-right .label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .header-right .value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--green);
+    }
+
+    /* ── Stats grid ───────────────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+
+    .stat.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .stat .label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+
+    .stat .value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .stat .value.green  { color: var(--green); }
+    .stat .value.red    { color: var(--red); }
+    .stat .value.yellow { color: var(--yellow); }
+    .stat .value.blue   { color: var(--blue); }
+
+    /* Reputation bar */
+    .rep-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .rep-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .rep-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--green);
+      width: 60%;           /* JS will update this */
+      transition: width 0.5s ease, background-color 0.5s;
+    }
+
+    /* ── Event card ───────────────────────────────────────────── */
+    .section {
+      padding: 0 12px 12px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+
+    .event-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .event-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .event-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .event-meta .type {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .event-meta .title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .event-body {
+      padding: 4px 0;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+
+    .detail-row .key   { color: var(--muted); }
+    .detail-row .val   { font-weight: 600; }
+    .detail-row .val.green  { color: var(--green); }
+    .detail-row .val.red    { color: var(--red); }
+    .detail-row .val.yellow { color: var(--yellow); }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn-row {
+      display: grid;
+      gap: 10px;
+      padding: 12px 16px 16px;
+    }
+
+    .btn-row.two-col { grid-template-columns: 1fr 1fr; }
+    .btn-row.one-col { grid-template-columns: 1fr; }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 15px 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.08s ease, opacity 0.15s;
+    }
+
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { opacity: 0.35; pointer-events: none; }
+
+    .btn-green  { background: var(--green);  color: #fff; }
+    .btn-dark   { background: var(--border); color: var(--text); }
+    .btn-blue   { background: var(--blue);   color: #fff; }
+    .btn-purple {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff;
+    }
+
+    .cant-fund {
+      margin: 0 16px 6px;
+      padding: 8px 10px;
+      background: rgba(231,76,60,0.15);
+      border: 1px solid rgba(231,76,60,0.3);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--red);
+    }
+
+    /* ── Progress dots ────────────────────────────────────────── */
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 0 4px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+
+    .dot.done    { background: var(--green); }
+    .dot.current { background: var(--blue); }
+
+    /* ── Activity log ─────────────────────────────────────────── */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-item {
+      background: var(--card);
+      border-radius: 10px;
+      border-left: 3px solid var(--border);
+      padding: 9px 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .log-item .day-tag {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .log-item.good    { border-left-color: var(--green); }
+    .log-item.bad     { border-left-color: var(--red); }
+    .log-item.warn    { border-left-color: var(--yellow); }
+    .log-item.neutral { border-left-color: var(--blue); }
+
+    /* ── End-of-day card ──────────────────────────────────────── */
+    .eod-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .eod-row:last-of-type { border-bottom: none; }
+    .eod-row .key { color: var(--muted); }
+
+    /* ── Overlay (win / lose) ─────────────────────────────────── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .overlay.show { display: flex; }
+
+    .overlay-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 32px 24px 28px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .overlay-icon  { font-size: 60px; margin-bottom: 14px; }
+
+    .overlay-title {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .overlay-title.win  { color: var(--green); }
+    .overlay-title.lose { color: var(--red); }
+
+    .overlay-body {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .overlay-stats { margin-bottom: 24px; }
+
+    .overlay-stat {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 5px 0;
+    }
+
+    .overlay-stat strong { color: var(--text); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <h1>🏦 First National Bank</h1>
+      <p id="dayLabel">Day 1 of 30</p>
+    </div>
+    <div class="header-right">
+      <div class="label">Net Worth</div>
+      <div class="value" id="netWorth">$200,000</div>
+    </div>
+  </header>
+
+  <!-- ── Stats ──────────────────────────────────────────────── -->
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Cash Reserves</div>
+      <div class="value green" id="statCash">$500,000</div>
+    </div>
+    <div class="stat">
+      <div class="label">Loans Out</div>
+      <div class="value blue" id="statLoans">$0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Deposits Owed</div>
+      <div class="value yellow" id="statDeposits">$300,000</div>
+    </div>
+    <div class="stat">
+      <div class="label">Total Profit</div>
+      <div class="value green" id="statProfit">$0</div>
+    </div>
+    <div class="stat full-width">
+      <div class="rep-row">
+        <div class="label">Reputation</div>
+        <div class="value green" id="statRep" style="font-size:15px">60 / 100</div>
+      </div>
+      <div class="rep-track">
+        <div class="rep-fill" id="repFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Current event ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Today's Event</div>
+    <div class="event-card" id="eventCard">
+      <!-- Populated by JS -->
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <!-- ── Activity log ───────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Activity Log</div>
+    <div class="log-list" id="logList"></div>
+  </div>
+
+  <!-- ── Win / Lose overlay ─────────────────────────────────── -->
+  <div class="overlay" id="overlay">
+    <div class="overlay-box">
+      <div class="overlay-icon"  id="overlayIcon"></div>
+      <div class="overlay-title" id="overlayTitle"></div>
+      <div class="overlay-body"  id="overlayBody"></div>
+      <div class="overlay-stats" id="overlayStats"></div>
+      <div class="btn-row one-col">
+        <button class="btn btn-blue" onclick="restartGame()">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // JavaScript will be added in Steps 2 and 3
+    console.log("Shell loaded — JS coming in Steps 2 & 3");
+  </script>
+
+</body>
+</html>
