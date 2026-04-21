@@ -359,7 +359,7 @@
   <header>
     <div class="header-left">
       <h1>🏦 First National Bank</h1>
-      <p id="dayLabel">Day 1 of 30</p>
+      <p id="dayLabel">Day 1</p>
     </div>
     <div class="header-right">
       <div class="label">Net Worth</div>
@@ -430,9 +430,6 @@
     const STARTING_DEPOSITS   = 300_000;
     const STARTING_REP        = 60;
     const DAILY_OVERHEAD      = 2_000;
-    const WIN_DAY             = 30;
-    const WIN_ASSETS          = 800_000;
-    const WIN_REP             = 55;
 
     // ── Bank state ─────────────────────────────────────────────
     let bank = {};
@@ -689,7 +686,7 @@
       const r = bank.rep;
       const nw = netWorth();
 
-      document.getElementById("dayLabel").textContent    = `Day ${bank.day} of ${WIN_DAY}`;
+      document.getElementById("dayLabel").textContent    = `Day ${bank.day}`;
       document.getElementById("netWorth").textContent    = fmt(nw);
       document.getElementById("netWorth").style.color    = nw >= 0 ? "var(--green)" : "var(--red)";
       document.getElementById("statCash").textContent    = fmt(bank.cash);
@@ -734,7 +731,7 @@
             <div class="event-icon">🌙</div>
             <div class="event-meta">
               <div class="type">End of Day</div>
-              <div class="title">Day ${bank.day} Wrap-up</div>
+              <div class="title">Day ${bank.day} Complete</div>
             </div>
           </div>
           <div class="event-body">
@@ -826,7 +823,6 @@
 
       bank.day++;
 
-      if (bank.day > WIN_DAY) { checkWin(); return; }
       if (checkLose()) return;
 
       buildDay();
@@ -858,31 +854,6 @@
         return true;
       }
       return false;
-    }
-
-    function checkWin() {
-      const assetsOk = totalAssets() >= WIN_ASSETS;
-      const repOk    = bank.rep      >= WIN_REP;
-
-      if (assetsOk && repOk) {
-        showOverlay(
-          "win", "🏆", "Outstanding Manager!",
-          "You grew the bank and kept customers happy for 30 days.",
-          `<div class="overlay-stat">Final assets: <strong>${fmt(totalAssets())}</strong></div>
-           <div class="overlay-stat">Total profit: <strong>${fmt(bank.profit)}</strong></div>
-           <div class="overlay-stat">Reputation: <strong>${bank.rep}/100</strong></div>`
-        );
-      } else {
-        const why = [];
-        if (!assetsOk) why.push(`needed ${fmt(WIN_ASSETS)} in assets (you had ${fmt(totalAssets())})`);
-        if (!repOk)    why.push(`needed reputation ≥ ${WIN_REP} (you had ${bank.rep})`);
-        showOverlay(
-          "lose", "📊", "Time's Up",
-          "You survived 30 days but didn't hit all targets: " + why.join("; ") + ".",
-          `<div class="overlay-stat">Assets: <strong>${fmt(totalAssets())}</strong></div>
-           <div class="overlay-stat">Reputation: <strong>${bank.rep}/100</strong></div>`
-        );
-      }
     }
 
     // ── Overlay helper ─────────────────────────────────────────
