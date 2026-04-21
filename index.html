@@ -49,10 +49,51 @@
       color: var(--blue);
     }
 
-    .header-left p {
+    /* day label row: "Day 3  ⏱ 1:24" */
+    .day-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .day-row p {
       font-size: 12px;
       color: var(--muted);
-      margin-top: 1px;
+    }
+
+    .day-time {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Day timer bar (sticky strip below header) ────────────── */
+    .day-timer-wrap {
+      position: sticky;
+      top: 57px;
+      z-index: 9;
+      height: 4px;
+      background: var(--border);
+    }
+
+    .day-timer-fill {
+      height: 4px;
+      width: 100%;          /* JS will shrink this */
+      background: var(--blue);
+    }
+
+    /* ── Per-event timer bar (inside event card) ──────────────── */
+    .ev-timer-wrap {
+      height: 3px;
+      background: var(--border);
+    }
+
+    .ev-timer-fill {
+      height: 3px;
+      width: 100%;          /* JS will shrink this */
+      background: var(--blue);
     }
 
     .header-right {
@@ -359,13 +400,21 @@
   <header>
     <div class="header-left">
       <h1>🏦 First National Bank</h1>
-      <p id="dayLabel">Day 1</p>
+      <div class="day-row">
+        <p id="dayLabel">Day 1</p>
+        <span class="day-time" id="dayTime">1:30</span>
+      </div>
     </div>
     <div class="header-right">
       <div class="label">Net Worth</div>
       <div class="value" id="netWorth">$200,000</div>
     </div>
   </header>
+
+  <!-- ── Day timer bar ─────────────────────────────────────────── -->
+  <div class="day-timer-wrap">
+    <div class="day-timer-fill" id="dayTimerFill"></div>
+  </div>
 
   <!-- ── Stats ──────────────────────────────────────────────── -->
   <div class="stats">
