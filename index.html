@@ -560,8 +560,40 @@
         }
       }
 
-      // Auto-resolve and day-advance logic comes in Step 3.
+      // Event timed out — auto-resolve it and reset event timer
+      if (qIdx < queue.length && evElapsed >= EVENT_TIMEOUT) {
+        autoResolve();
+        return; // autoResolve() schedules the next frame
+      }
+
+      // Day timer expired — silently drain remaining events then advance
+      if (dayElapsed >= DAY_DURATION) {
+        while (qIdx < queue.length) {
+          if (!autoResolve(true)) return; // bank failed mid-drain
+        }
+        stopTimers();
+        advanceDay();
+        return;
+      }
+
       rafId = requestAnimationFrame(tick);
+    }
+
+    // Resolve the current event automatically.
+    // silent=true skips the log entry and RAF scheduling (used in day-drain loop).
+    // Returns false if the game ended as a result.
+    function autoResolve(silent = false) {
+      const ev  = queue[qIdx];
+      // Loans: too busy to review → deny. Everything else → approve.
+      const res = ev.eventType === "Loan Application" ? ev.onDeny() : ev.onApprove();
+      if (!silent) addLog(`⏱ Auto: ${res.msg}`, res.kind);
+      qIdx++;
+      renderStats();
+      renderEvent();
+      resetEventTimer();
+      if (checkLose()) { stopTimers(); return false; }
+      if (!silent) rafId = requestAnimationFrame(tick);
+      return true;
     }
 
     // ── Utilities ──────────────────────────────────────────────
@@ -907,11 +939,13 @@
       qIdx++;
       renderStats();
       renderEvent();
-      if (checkLose()) return;
+      resetEventTimer();
+      if (checkLose()) { stopTimers(); return; }
     }
 
     // ── End-of-day: collect payments, pay interest, overhead ──
     function advanceDay() {
+      stopTimers();
       let loanIncome = 0;
 
       bank.loanBook = bank.loanBook.filter(loan => {
@@ -944,8 +978,8 @@
       buildDay();
       renderStats();
       renderEvent();
+      startTimers();
 
-      // Scroll event card into view on mobile
       document.getElementById("eventCard").scrollIntoView({ behavior:"smooth", block:"nearest" });
     }
 
