@@ -479,9 +479,16 @@
     const STARTING_DEPOSITS   = 300_000;
     const STARTING_REP        = 60;
     const DAILY_OVERHEAD      = 2_000;
+    const DAY_DURATION        = 90;    // real seconds per game day
+    const EVENT_TIMEOUT       = 20;    // real seconds before an event auto-resolves
 
     // ── Bank state ─────────────────────────────────────────────
     let bank = {};
+
+    // ── Timer state ────────────────────────────────────────────
+    let rafId      = null;   // requestAnimationFrame handle
+    let dayStart   = 0;      // Date.now() when current day began
+    let eventStart = 0;      // Date.now() when current event appeared
 
     function initBank() {
       bank = {
@@ -497,6 +504,65 @@
 
     const totalAssets = () => bank.cash + bank.loansOut;
     const netWorth    = () => totalAssets() - bank.deposits;
+
+    // ── Timer functions ────────────────────────────────────────
+    function startTimers() {
+      stopTimers();
+      dayStart   = Date.now();
+      eventStart = Date.now();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function stopTimers() {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    function resetEventTimer() {
+      eventStart = Date.now();
+    }
+
+    function tick() {
+      const now        = Date.now();
+      const dayElapsed = (now - dayStart) / 1000;
+      const evElapsed  = (now - eventStart) / 1000;
+      const dayLeft    = Math.max(0, DAY_DURATION - dayElapsed);
+      const dayPct     = dayLeft / DAY_DURATION;
+
+      // Day timer bar colour: blue → yellow → red as time runs out
+      const dayColour =
+        dayPct > 0.4 ? "var(--blue)" : dayPct > 0.15 ? "var(--yellow)" : "var(--red)";
+
+      const dayFill = document.getElementById("dayTimerFill");
+      if (dayFill) {
+        dayFill.style.width      = `${dayPct * 100}%`;
+        dayFill.style.background = dayColour;
+      }
+
+      // Countdown label "M:SS"
+      const timeEl = document.getElementById("dayTime");
+      if (timeEl) {
+        const m = Math.floor(dayLeft / 60);
+        const s = Math.floor(dayLeft % 60);
+        timeEl.textContent  = `${m}:${s.toString().padStart(2, "0")}`;
+        timeEl.style.color  = dayColour;
+      }
+
+      // Per-event timer bar (only while an event is on screen)
+      if (qIdx < queue.length) {
+        const evLeft = Math.max(0, EVENT_TIMEOUT - evElapsed);
+        const evPct  = evLeft / EVENT_TIMEOUT;
+        const evColour =
+          evPct > 0.5 ? "var(--blue)" : evPct > 0.25 ? "var(--yellow)" : "var(--red)";
+        const evFill = document.getElementById("evTimerFill");
+        if (evFill) {
+          evFill.style.width      = `${evPct * 100}%`;
+          evFill.style.background = evColour;
+        }
+      }
+
+      // Auto-resolve and day-advance logic comes in Step 3.
+      rafId = requestAnimationFrame(tick);
+    }
 
     // ── Utilities ──────────────────────────────────────────────
     const fmt     = n   => '$' + Math.round(n).toLocaleString();
@@ -819,6 +885,7 @@
            </div>`;
 
       card.innerHTML = `
+        <div class="ev-timer-wrap"><div class="ev-timer-fill" id="evTimerFill"></div></div>
         <div class="event-head">
           <div class="event-icon">${ev.icon}</div>
           <div class="event-meta">
@@ -927,12 +994,14 @@
 
     // ── Restart ────────────────────────────────────────────────
     function restartGame() {
+      stopTimers();
       document.getElementById("overlay").classList.remove("show");
       document.getElementById("logList").innerHTML = "";
       initBank();
       buildDay();
       renderStats();
       renderEvent();
+      startTimers();
     }
 
     // ── Boot ───────────────────────────────────────────────────
@@ -940,6 +1009,7 @@
     buildDay();
     renderStats();
     renderEvent();
+    startTimers();
   </script>
 
 </body>
