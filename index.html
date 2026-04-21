@@ -701,12 +701,12 @@
 
       document.getElementById("statRep").textContent = `${r} / 100`;
       document.getElementById("statRep").style.color =
-        r >= WIN_REP ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
+        r >= 50 ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
 
       const fill = document.getElementById("repFill");
       fill.style.width = `${r}%`;
       fill.style.background =
-        r >= WIN_REP ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
+        r >= 50 ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
     }
 
     // ── Render: progress dots ──────────────────────────────────
@@ -839,7 +839,7 @@
         showOverlay(
           "lose", "💸", "Bankrupt!",
           "Your cash reserves hit zero. The regulators have taken over.",
-          `<div class="overlay-stat">Reached Day <strong>${bank.day}</strong> of ${WIN_DAY}</div>
+          `<div class="overlay-stat">Survived <strong>${bank.day} days</strong></div>
            <div class="overlay-stat">Final assets: <strong>${fmt(totalAssets())}</strong></div>`
         );
         return true;
@@ -848,7 +848,7 @@
         showOverlay(
           "lose", "🏃", "Bank Run!",
           "Customers lost faith and withdrew everything. The bank is finished.",
-          `<div class="overlay-stat">Reached Day <strong>${bank.day}</strong> of ${WIN_DAY}</div>
+          `<div class="overlay-stat">Survived <strong>${bank.day} days</strong></div>
            <div class="overlay-stat">Final reputation: <strong>${bank.rep}/100</strong></div>`
         );
         return true;
