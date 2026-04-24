@@ -35,29 +35,39 @@ function renderDots() {
   }).join("");
 }
 
+// End-of-day summary card — shows actual numbers already applied to bank state.
+function renderEndOfDay(loanIncome, depInt, overhead, dayDelta) {
+  const card       = document.getElementById("eventCard");
+  const deltaColor = dayDelta >= 0 ? "var(--green)" : "var(--red)";
+  const deltaSign  = dayDelta >= 0 ? "+" : "";
+  card.innerHTML = `
+    <div class="event-head">
+      <div class="event-icon">📊</div>
+      <div class="event-meta">
+        <div class="type">End of Day</div>
+        <div class="title">Day ${bank.day} Report</div>
+      </div>
+    </div>
+    <div class="event-body">
+      <div class="eod-row"><span class="key">Loan repayments</span><span style="color:var(--green)">+${fmt(loanIncome)}</span></div>
+      <div class="eod-row"><span class="key">Deposit interest</span><span style="color:var(--red)">−${fmt(depInt)}</span></div>
+      <div class="eod-row"><span class="key">Daily overhead</span><span style="color:var(--red)">−${fmt(overhead)}</span></div>
+      <div class="eod-row" style="margin-top:4px;padding-top:10px;border-top:1px solid var(--border)">
+        <span class="key" style="font-weight:700;color:var(--text)">Net change</span>
+        <span style="color:${deltaColor};font-weight:800;font-size:16px">${deltaSign}${fmt(dayDelta)}</span>
+      </div>
+    </div>
+    <div class="btn-row one-col">
+      <button class="btn btn-purple" onclick="startNextDay()">Start Day ${bank.day + 1} →</button>
+    </div>`;
+  document.getElementById("dots").innerHTML = "";
+}
+
 function renderEvent() {
   const card = document.getElementById("eventCard");
 
   if (qIdx >= queue.length) {
-    const loanIncome = bank.loanBook.reduce((s, l) => s + l.dailyPay, 0);
-    const depInt     = bank.deposits * 0.000055;
-    const d          = DIFFICULTY[settings.difficulty] || DIFFICULTY.normal;
-    card.innerHTML = `
-      <div class="event-head">
-        <div class="event-icon">🌙</div>
-        <div class="event-meta">
-          <div class="type">End of Day</div>
-          <div class="title">Day ${bank.day} Complete</div>
-        </div>
-      </div>
-      <div class="event-body">
-        <div class="eod-row"><span class="key">Loan repayments in</span><span style="color:var(--green)">+${fmt(loanIncome)}</span></div>
-        <div class="eod-row"><span class="key">Deposit interest out</span><span style="color:var(--red)">−${fmt(depInt)}</span></div>
-        <div class="eod-row"><span class="key">Daily overhead</span><span style="color:var(--red)">−${fmt(d.dailyOverhead)}</span></div>
-      </div>
-      <div class="btn-row one-col">
-        <button class="btn btn-purple" onclick="advanceDay()">Next Day →</button>
-      </div>`;
+    card.innerHTML = "";
     document.getElementById("dots").innerHTML = "";
     return;
   }

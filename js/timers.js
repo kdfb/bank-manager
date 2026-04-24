@@ -67,8 +67,7 @@ function tick() {
     while (qIdx < queue.length) {
       if (!autoResolve(true)) return;
     }
-    stopTimers();
-    advanceDay();
+    endOfDay();
     return;
   }
 
@@ -84,9 +83,12 @@ function autoResolve(silent = false) {
   if (!silent) addLog(`⏱ Auto: ${res.msg}`, res.kind);
   qIdx++;
   renderStats();
-  renderEvent();
   resetEventTimer();
   if (checkLose()) { stopTimers(); return false; }
-  if (!silent) rafId = requestAnimationFrame(tick);
+  if (!silent) {
+    if (qIdx >= queue.length) { endOfDay(); return true; }
+    renderEvent();
+    rafId = requestAnimationFrame(tick);
+  }
   return true;
 }

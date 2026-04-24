@@ -22,14 +22,15 @@ function act(choice) {
   addLog(res.msg, res.kind);
   qIdx++;
   renderStats();
-  renderEvent();
   resetEventTimer();
   if (checkLose()) { stopTimers(); return; }
+  if (qIdx >= queue.length) { endOfDay(); return; }
+  renderEvent();
   saveGame();
 }
 
-// ── End-of-day processing ──────────────────────────────────────
-function advanceDay() {
+// ── Phase 1: process EOD math, show summary, pause timers ─────
+function endOfDay() {
   stopTimers();
   const profitBefore = bank.profit;
   let loanIncome = 0;
@@ -46,8 +47,8 @@ function advanceDay() {
 
   bank.loansOut = Math.max(0, bank.loansOut);
 
+  const d      = DIFFICULTY[settings.difficulty] || DIFFICULTY.normal;
   const depInt = bank.deposits * 0.000055;
-  const d = DIFFICULTY[settings.difficulty] || DIFFICULTY.normal;
   bank.cash   -= depInt + d.dailyOverhead;
   bank.profit -= depInt + d.dailyOverhead;
 
@@ -55,11 +56,16 @@ function advanceDay() {
   if (dayDelta > bank.stats.bestDay)  bank.stats.bestDay  = dayDelta;
   if (dayDelta < bank.stats.worstDay) bank.stats.worstDay = dayDelta;
 
-  addLog(
-    `Day ${bank.day} closed. Loan income +${fmt(loanIncome)}, overhead −${fmt(d.dailyOverhead)}.`,
-    "neutral"
-  );
+  renderStats();
+  renderEndOfDay(loanIncome, depInt, d.dailyOverhead, dayDelta);
+  saveGame();
 
+  document.getElementById("eventCard").scrollIntoView({ behavior:"smooth", block:"nearest" });
+}
+
+// ── Phase 2: player confirms, next day begins ──────────────────
+function startNextDay() {
+  addLog(`Day ${bank.day} closed. Starting day ${bank.day + 1}.`, "neutral");
   bank.day++;
 
   if (checkLose()) { saveGame(); return; }
