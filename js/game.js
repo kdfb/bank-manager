@@ -65,7 +65,7 @@ function endOfDay() {
 
 // ── Phase 2: player confirms, next day begins ──────────────────
 function startNextDay() {
-  addLog(`Day ${bank.day} closed. Starting day ${bank.day + 1}.`, "neutral");
+  addLog(`${gameDate(bank.day)} concluded.`, "neutral");
   bank.day++;
 
   if (checkLose()) { saveGame(); return; }
@@ -84,8 +84,8 @@ function checkLose() {
   if (bank.cash <= 0) {
     showOverlay(
       "lose", "💸", "Bankrupt!",
-      "Your cash reserves hit zero. The regulators have taken over.",
-      `<div class="overlay-stat">Survived <strong>${bank.day} days</strong></div>
+      "The vault is empty. Creditors have seized the bank.",
+      `<div class="overlay-stat">${gameDate(1)} — ${gameDate(bank.day)}</div>
        <div class="overlay-stat">Final assets: <strong>${fmt(totalAssets())}</strong></div>
        <div class="overlay-stat">Loans approved: <strong>${bank.stats.loansApproved}</strong></div>`
     );
@@ -95,9 +95,9 @@ function checkLose() {
   if (bank.rep <= 15) {
     showOverlay(
       "lose", "🏃", "Bank Run!",
-      "Customers lost faith and withdrew everything. The bank is finished.",
-      `<div class="overlay-stat">Survived <strong>${bank.day} days</strong></div>
-       <div class="overlay-stat">Final reputation: <strong>${bank.rep}/100</strong></div>
+      "Depositors lost confidence and withdrew their funds. The bank has closed its doors.",
+      `<div class="overlay-stat">${gameDate(1)} — ${gameDate(bank.day)}</div>
+       <div class="overlay-stat">Final standing: <strong>${bank.rep}/100</strong></div>
        <div class="overlay-stat">Loans approved: <strong>${bank.stats.loansApproved}</strong></div>`
     );
     deleteSave();

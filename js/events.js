@@ -36,28 +36,28 @@ const RANDOM_EVENTS = [
     icon:"📉", title:"Economic Downturn",
     desc:"Markets fell. Several borrowers are struggling to repay.",
     effect: b => {
-      const loss = Math.min(b.loansOut, 15_000);
+      const loss = Math.min(b.loansOut, 150);
       b.loansOut -= loss;
       b.profit   -= loss;
     },
-    msg: "Loan write-down: −$15,000", kind:"bad",
+    msg: "Loan write-down: −$150", kind:"bad",
   },
   {
     icon:"🔫", title:"Robbery Attempt",
     desc:"Armed robbers hit the vault. Security held them off — barely.",
     effect: b => {
-      const loss = Math.min(b.cash, 8_000);
+      const loss = Math.min(b.cash, 80);
       b.cash   -= loss;
       b.profit -= loss;
       b.rep = Math.max(0, b.rep - 4);
     },
-    msg: "Cash −$8,000 · Reputation −4", kind:"bad",
+    msg: "Cash −$80 · Reputation −4", kind:"bad",
   },
   {
     icon:"💡", title:"Central Bank Rate Cut",
     desc:"Lower rates mean your deposit interest costs drop slightly.",
-    effect: b => { b.deposits = Math.max(0, b.deposits - 5_000); },
-    msg: "Deposit liability −$5,000", kind:"good",
+    effect: b => { b.deposits = Math.max(0, b.deposits - 50); },
+    msg: "Deposit liability −$50", kind:"good",
   },
   {
     icon:"🔍", title:"Fraud Attempt Foiled",
@@ -69,11 +69,11 @@ const RANDOM_EVENTS = [
     icon:"⚠️", title:"Compliance Fine",
     desc:"Regulators flagged a paperwork issue. You must pay a fine.",
     effect: b => {
-      b.cash   -= 5_000;
-      b.profit -= 5_000;
+      b.cash   -= 50;
+      b.profit -= 50;
       b.rep = Math.max(0, b.rep - 3);
     },
-    msg: "Fine −$5,000 · Reputation −3", kind:"bad",
+    msg: "Fine −$50 · Reputation −3", kind:"bad",
   },
   {
     icon:"🌟", title:"VIP Client Interest",
@@ -90,7 +90,7 @@ const RANDOM_EVENTS = [
 function makeLoanEvent() {
   const name    = pick(NAMES);
   const purpose = pick(PURPOSES);
-  const amount  = randInt(5, 80) * 1_000;
+  const amount  = randInt(5, 80) * 10;
   const risk    = pick(["low","medium","high"]);
   const termMo  = pick([6, 12, 24, 36]);
   const termDays = termMo * 30;
@@ -102,7 +102,7 @@ function makeLoanEvent() {
 
   return {
     icon: "📝",
-    eventType: "Loan Application",
+    eventType: "Credit Application",
     title: name,
     details: [
       { key:"Purpose",     val: purpose },
@@ -116,7 +116,7 @@ function makeLoanEvent() {
     denyLabel:    "❌ Deny",
     single: false,
     canApprove: () => bank.cash >= amount,
-    cantMsg: "Not enough cash to fund this loan.",
+    cantMsg: "Insufficient funds in the vault.",
     onApprove() {
       bank.cash     -= amount;
       bank.loansOut += amount;
@@ -140,10 +140,10 @@ function makeLoanEvent() {
 
 function makeDepositEvent() {
   const who    = pick(DEPOSITORS);
-  const amount = randInt(20, 150) * 1_000;
+  const amount = randInt(20, 150) * 10;
   return {
     icon: "💰",
-    eventType: "Deposit Offer",
+    eventType: "Deposit Proposal",
     title: who,
     details: [
       { key:"Amount", val: fmt(amount) },
@@ -166,17 +166,17 @@ function makeDepositEvent() {
 }
 
 function makeWithdrawalEvent() {
-  const amount = randInt(5, 50) * 1_000;
+  const amount = randInt(5, 50) * 10;
   const canPay = () => bank.cash >= amount;
   return {
     icon: "🏧",
-    eventType: "Withdrawal Request",
-    title: `${fmt(amount)} requested`,
+    eventType: "Withdrawal Demand",
+    title: `${fmt(amount)} demanded`,
     details: [
       { key:"Amount", val: fmt(amount) },
-      { key:"Status", val: canPay() ? "Funds available" : "⚠️ Low cash!", cls: canPay() ? "green" : "red" },
+      { key:"Status", val: canPay() ? "Funds available" : "⚠️ Vault low!", cls: canPay() ? "green" : "red" },
     ],
-    approveLabel: "✅ Process",
+    approveLabel: "✅ Honour",
     denyLabel:    "❌ Refuse",
     single: false,
     canApprove: () => true,
@@ -203,7 +203,7 @@ function makeRandomEvent() {
     eventType: "Random Event",
     title: ev.title,
     details: [{ key:"Detail", val: ev.desc }],
-    approveLabel: "Acknowledge",
+    approveLabel: "Duly Noted",
     single: true,
     canApprove: () => true,
     onApprove() {

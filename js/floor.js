@@ -8,7 +8,7 @@ const FLOOR_UPGRADES = [
     id:    "teller_window",
     label: "Teller Window",
     icon:  "🪟",
-    cost:  15_000,
+    cost:  150,
     size:  [1, 1],
     desc:  "An extra teller serves more customers. +1 event per day.",
   },
@@ -16,7 +16,7 @@ const FLOOR_UPGRADES = [
     id:    "risk_desk",
     label: "Risk Analyst",
     icon:  "🖥️",
-    cost:  25_000,
+    cost:  250,
     size:  [2, 1],
     desc:  "In-house analyst: high-risk loans gain a small rep bonus.",
   },
@@ -24,49 +24,49 @@ const FLOOR_UPGRADES = [
     id:    "vault_upgrade",
     label: "Vault Upgrade",
     icon:  "🔒",
-    cost:  40_000,
+    cost:  400,
     size:  [2, 2],
-    desc:  "Robbery losses capped at $2,000 instead of $8,000.",
+    desc:  "Robbery losses capped at $20 instead of $80.",
   },
   {
     id:    "pr_office",
     label: "PR Office",
     icon:  "📣",
-    cost:  20_000,
+    cost:  200,
     size:  [2, 1],
     desc:  "Reputation gains from positive events increased by +2.",
   },
   {
     id:    "atm",
-    label: "ATM",
+    label: "Cashier's Box",
     icon:  "🏧",
-    cost:  10_000,
+    cost:  100,
     size:  [1, 1],
-    desc:  "Self-service ATM halves reputation loss from refused withdrawals.",
+    desc:  "Dedicated cashier halves reputation loss from refused withdrawals.",
   },
   {
     id:    "break_room",
-    label: "Break Room",
+    label: "Staff Quarters",
     icon:  "☕",
-    cost:  8_000,
+    cost:  80,
     size:  [2, 1],
-    desc:  "Staff morale boost. Reduces daily overhead by $200.",
+    desc:  "Staff comfort boost. Reduces daily overhead by $2.",
   },
   {
     id:    "safe_deposit",
     label: "Safe Deposit",
     icon:  "🗄️",
-    cost:  18_000,
+    cost:  180,
     size:  [1, 2],
-    desc:  "Attracts larger deposit offers (+$20k average).",
+    desc:  "Attracts larger deposit proposals (+$200 average).",
   },
   {
     id:    "lobby",
     label: "Grand Lobby",
     icon:  "🏛️",
-    cost:  50_000,
+    cost:  500,
     size:  [3, 2],
-    desc:  "Impresses VIPs. Reputation floor raised to 25 (from 15).",
+    desc:  "Impresses distinguished patrons. Standing floor raised to 25.",
   },
 ];
 
@@ -147,7 +147,7 @@ function updateFloorHint() {
   if (!el) return;
   if (selectedUpgradeId) {
     const upg = FLOOR_UPGRADES.find(u => u.id === selectedUpgradeId);
-    el.textContent = `Tap a blue cell to place ${upg.label}`;
+    el.textContent = `Tap a highlighted cell to place ${upg.label}`;
     el.className   = "floor-hint active";
   } else {
     el.textContent = "Select an upgrade below to place it";

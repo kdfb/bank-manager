@@ -19,8 +19,8 @@ function renderMenuSlots() {
 
     const infoHtml = meta
       ? `<div class="slot-info">
-           <span class="slot-day">Day ${meta.day}</span>
-           <span class="slot-nw" style="color:${nwColor}">${fmt(meta.netWorth)} net worth</span>
+           <span class="slot-day">${gameDate(meta.day)}</span>
+           <span class="slot-nw" style="color:${nwColor}">${fmt(meta.netWorth)} net capital</span>
          </div>`
       : `<div class="slot-info empty">Empty slot</div>`;
 
@@ -51,12 +51,12 @@ function renderStats() {
   const r  = bank.rep;
   const nw = netWorth();
 
-  document.getElementById("dayLabel").textContent     = `Day ${bank.day}`;
+  document.getElementById("dayLabel").textContent     = gameDate(bank.day);
   document.getElementById("netWorth").textContent     = fmt(nw);
   document.getElementById("netWorth").style.color     = nw >= 0 ? "var(--green)" : "var(--red)";
   document.getElementById("statCash").textContent     = fmt(bank.cash);
   document.getElementById("statCash").style.color     =
-    bank.cash < 20_000 ? "var(--red)" : bank.cash < 80_000 ? "var(--yellow)" : "var(--green)";
+    bank.cash < 200 ? "var(--red)" : bank.cash < 800 ? "var(--yellow)" : "var(--green)";
   document.getElementById("statLoans").textContent    = fmt(bank.loansOut);
   document.getElementById("statDeposits").textContent = fmt(bank.deposits);
 
@@ -91,7 +91,7 @@ function renderEndOfDay(loanIncome, depInt, overhead, dayDelta) {
       <div class="event-icon">📊</div>
       <div class="event-meta">
         <div class="type">End of Day</div>
-        <div class="title">Day ${bank.day} Report</div>
+        <div class="title">${gameDate(bank.day)} Report</div>
       </div>
     </div>
     <div class="event-body">
@@ -104,7 +104,7 @@ function renderEndOfDay(loanIncome, depInt, overhead, dayDelta) {
       </div>
     </div>
     <div class="btn-row one-col">
-      <button class="btn btn-purple" onclick="startNextDay()">Start Day ${bank.day + 1} →</button>
+      <button class="btn btn-purple" onclick="startNextDay()">Start ${gameDate(bank.day + 1)} →</button>
     </div>`;
   document.getElementById("dots").innerHTML = "";
 }
@@ -169,7 +169,7 @@ function addLog(msg, kind) {
   const list = document.getElementById("logList");
   const el   = document.createElement("div");
   el.className = `log-item ${kind}`;
-  el.innerHTML = `<div class="day-tag">Day ${bank.day}</div>${msg}`;
+  el.innerHTML = `<div class="day-tag">${gameDate(bank.day)}</div>${msg}`;
   list.prepend(el);
   while (list.children.length > 25) list.removeChild(list.lastChild);
 }
