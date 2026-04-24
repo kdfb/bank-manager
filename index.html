@@ -18,8 +18,11 @@
       </div>
     </div>
     <div class="header-right">
-      <div class="label">Net Worth</div>
-      <div class="value" id="netWorth">$200,000</div>
+      <div class="header-nw">
+        <div class="label">Net Worth</div>
+        <div class="value" id="netWorth">$200,000</div>
+      </div>
+      <button class="menu-btn" onclick="openMenu()">☰</button>
     </div>
   </header>
 
@@ -81,6 +84,25 @@
   <div class="section">
     <div class="section-label">Activity Log</div>
     <div class="log-list" id="logList"></div>
+  </div>
+
+  <!-- ── Menu overlay ──────────────────────────────────────── -->
+  <div class="overlay" id="menuOverlay">
+    <div class="overlay-box menu-box">
+      <div class="menu-header">
+        <span class="menu-title">Menu</span>
+        <button class="menu-close-btn" onclick="closeMenu()">✕</button>
+      </div>
+
+      <div class="menu-section-label">Save Slots</div>
+      <div id="menuSlots"></div>
+
+      <div class="menu-divider"></div>
+
+      <div id="restartArea">
+        <button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">🔄 Restart New Game</button>
+      </div>
+    </div>
   </div>
 
   <!-- ── Win / Lose overlay ─────────────────────────────────── -->

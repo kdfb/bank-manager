@@ -1,6 +1,52 @@
 // All DOM rendering. Reads from `bank`, `queue`, `qIdx` globals.
 // No game logic here — only visual updates.
 
+function timeAgo(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60)    return "just now";
+  if (sec < 3600)  return `${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+  return `${Math.floor(sec / 86400)}d ago`;
+}
+
+function renderMenuSlots() {
+  const container = document.getElementById("menuSlots");
+  if (!container) return;
+
+  container.innerHTML = SLOT_KEYS.map((_, i) => {
+    const meta = readSlotMeta(i);
+    const nwColor = meta && meta.netWorth >= 0 ? "var(--green)" : "var(--red)";
+
+    const infoHtml = meta
+      ? `<div class="slot-info">
+           <span class="slot-day">Day ${meta.day}</span>
+           <span class="slot-nw" style="color:${nwColor}">${fmt(meta.netWorth)} net worth</span>
+         </div>`
+      : `<div class="slot-info empty">Empty slot</div>`;
+
+    const savedAtHtml = meta
+      ? `<span class="slot-saved-at">${timeAgo(meta.savedAt)}</span>` : "";
+
+    const loadDeleteBtns = meta
+      ? `<button class="slot-btn slot-btn-load"   onclick="menuLoadFromSlot(${i})">⬆ Load</button>
+         <button class="slot-btn slot-btn-delete" onclick="menuDeleteSlot(${i})">✕</button>`
+      : "";
+
+    return `
+      <div class="slot-card">
+        <div class="slot-card-top">
+          <span class="slot-name">Slot ${i + 1}</span>
+          ${savedAtHtml}
+        </div>
+        ${infoHtml}
+        <div class="slot-btns">
+          <button class="slot-btn slot-btn-save" onclick="menuSaveToSlot(${i})">↓ Save</button>
+          ${loadDeleteBtns}
+        </div>
+      </div>`;
+  }).join("");
+}
+
 function renderStats() {
   const r  = bank.rep;
   const nw = netWorth();

@@ -29,11 +29,14 @@ const netWorth    = () => totalAssets() - bank.deposits;
 
 // ── Persistence ───────────────────────────────────────────────
 
+// ── Auto-save (current session) ───────────────────────────────
+
 function saveGame() {
   try {
     localStorage.setItem('bankSave', JSON.stringify({
       bank,
       settings,
+      floor:   typeof serializeFloor === 'function' ? serializeFloor() : [],
       version: 1,
     }));
   } catch (_) {}
@@ -47,10 +50,57 @@ function loadGame() {
     if (data.version !== 1) return false;
     bank     = data.bank;
     settings = { ...DEFAULT_SETTINGS, ...data.settings };
+    if (typeof deserializeFloor === 'function') deserializeFloor(data.floor || []);
     return true;
   } catch (_) { return false; }
 }
 
 function deleteSave() {
   try { localStorage.removeItem('bankSave'); } catch (_) {}
+}
+
+// ── Manual save slots ──────────────────────────────────────────
+
+const SLOT_KEYS = ['bankSave_slot1', 'bankSave_slot2', 'bankSave_slot3'];
+
+function saveToSlot(slot) {
+  try {
+    localStorage.setItem(SLOT_KEYS[slot], JSON.stringify({
+      bank,
+      settings,
+      floor:   typeof serializeFloor === 'function' ? serializeFloor() : [],
+      savedAt: Date.now(),
+      version: 1,
+    }));
+  } catch (_) {}
+}
+
+function loadFromSlot(slot) {
+  try {
+    const raw = localStorage.getItem(SLOT_KEYS[slot]);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.version !== 1) return false;
+    bank     = data.bank;
+    settings = { ...DEFAULT_SETTINGS, ...data.settings };
+    if (typeof deserializeFloor === 'function') deserializeFloor(data.floor || []);
+    return true;
+  } catch (_) { return false; }
+}
+
+function readSlotMeta(slot) {
+  try {
+    const raw = localStorage.getItem(SLOT_KEYS[slot]);
+    if (!raw) return null;
+    const { bank: b, savedAt } = JSON.parse(raw);
+    return {
+      day:      b.day,
+      netWorth: b.cash + b.loansOut - b.deposits,
+      savedAt,
+    };
+  } catch (_) { return null; }
+}
+
+function deleteSlot(slot) {
+  try { localStorage.removeItem(SLOT_KEYS[slot]); } catch (_) {}
 }

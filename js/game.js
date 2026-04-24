@@ -106,6 +106,61 @@ function checkLose() {
   return false;
 }
 
+// ── Menu ───────────────────────────────────────────────────────
+function openMenu() {
+  stopTimers();
+  renderMenuSlots();
+  document.getElementById("menuOverlay").classList.add("show");
+}
+
+function closeMenu() {
+  document.getElementById("menuOverlay").classList.remove("show");
+  document.getElementById("restartArea").innerHTML =
+    `<button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">🔄 Restart New Game</button>`;
+  // Resume timers only if mid-day (not on EOD screen)
+  if (qIdx < queue.length) startTimers();
+}
+
+function menuSaveToSlot(slot) {
+  saveToSlot(slot);
+  renderMenuSlots();
+}
+
+function menuLoadFromSlot(slot) {
+  if (!loadFromSlot(slot)) return;
+  document.getElementById("menuOverlay").classList.remove("show");
+  document.getElementById("logList").innerHTML = "";
+  stopTimers();
+  buildDay();
+  renderStats();
+  renderEvent();
+  renderFloor();
+  renderShop();
+  updateFloorHint();
+  startTimers();
+}
+
+function menuDeleteSlot(slot) {
+  deleteSlot(slot);
+  renderMenuSlots();
+}
+
+function confirmRestart() {
+  document.getElementById("restartArea").innerHTML = `
+    <div class="restart-confirm">
+      <p>Start a brand new game? Current progress will be lost.</p>
+      <div class="restart-confirm-btns">
+        <button class="btn btn-dark"  onclick="closeMenu()">Cancel</button>
+        <button class="btn btn-green" onclick="doRestart()">Yes, Restart</button>
+      </div>
+    </div>`;
+}
+
+function doRestart() {
+  document.getElementById("menuOverlay").classList.remove("show");
+  restartGame();
+}
+
 // ── Restart ────────────────────────────────────────────────────
 function restartGame() {
   stopTimers();
