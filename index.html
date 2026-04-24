@@ -66,8 +66,15 @@
 
   <!-- ── Bank branch floor view ─────────────────────────────── -->
   <div class="floor-section">
-    <div class="section-label">Branch Floor</div>
-    <div id="floorGrid"></div>
+    <div class="floor-header">
+      <div class="section-label" style="margin-bottom:0">Branch Floor</div>
+      <span class="floor-hint" id="floorHint">Select an upgrade below to place it</span>
+    </div>
+    <div class="floor-grid-wrap">
+      <div id="floorGrid"></div>
+    </div>
+    <div class="shop-label">Upgrades Shop</div>
+    <div class="shop-scroll" id="shopGrid"></div>
   </div>
 
   <!-- ── Activity log ───────────────────────────────────────── -->

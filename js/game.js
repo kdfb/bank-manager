@@ -107,9 +107,13 @@ function restartGame() {
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("logList").innerHTML = "";
   initBank();
+  initFloor();
   buildDay();
   renderStats();
   renderEvent();
+  renderFloor();
+  renderShop();
+  updateFloorHint();
   startTimers();
 }
 
@@ -123,5 +127,7 @@ function restartGame() {
   renderStats();
   renderEvent();
   renderFloor();
+  renderShop();
+  updateFloorHint();
   startTimers();
 })();
