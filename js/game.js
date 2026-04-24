@@ -191,4 +191,13 @@ function restartGame() {
   renderShop();
   updateFloorHint();
   startTimers();
+
+  // Wire the menu button with touchend so it works reliably on iOS Safari,
+  // where click events on buttons inside sticky headers can silently fail.
+  const menuBtn = document.getElementById("menuBtn");
+  menuBtn.addEventListener("touchend", function (e) {
+    e.preventDefault();
+    openMenu();
+  }, { passive: false });
+  menuBtn.addEventListener("click", openMenu);
 })();

@@ -106,15 +106,19 @@ header {
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 18px;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  /* Ensure the button sits above the sticky timer bar */
+  position: relative;
+  z-index: 11;
 }
 
 .menu-btn:active { opacity: 0.6; }
