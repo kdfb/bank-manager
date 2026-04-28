@@ -7,6 +7,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "teller_window",
     label: "Teller Window",
+    art:   "assets/office/teller-window.png",
     icon:  "🪟",
     cost:  150,
     size:  [1, 1],
@@ -15,6 +16,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "risk_desk",
     label: "Risk Analyst",
+    art:   "assets/office/risk-desk.png",
     icon:  "🖥️",
     cost:  250,
     size:  [2, 1],
@@ -23,6 +25,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "vault_upgrade",
     label: "Vault Upgrade",
+    art:   "assets/office/vault-upgrade.png",
     icon:  "🔒",
     cost:  400,
     size:  [2, 2],
@@ -31,6 +34,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "pr_office",
     label: "PR Office",
+    art:   "assets/office/pr-office.png",
     icon:  "📣",
     cost:  200,
     size:  [2, 1],
@@ -39,6 +43,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "atm",
     label: "Cashier's Box",
+    art:   "assets/office/cashiers-box.png",
     icon:  "🏧",
     cost:  100,
     size:  [1, 1],
@@ -47,6 +52,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "break_room",
     label: "Staff Quarters",
+    art:   "assets/office/staff-quarters.png",
     icon:  "☕",
     cost:  80,
     size:  [2, 1],
@@ -55,6 +61,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "safe_deposit",
     label: "Safe Deposit",
+    art:   "assets/office/safe-deposit.png",
     icon:  "🗄️",
     cost:  180,
     size:  [1, 2],
@@ -63,6 +70,7 @@ const FLOOR_UPGRADES = [
   {
     id:    "lobby",
     label: "Grand Lobby",
+    art:   "assets/office/grand-lobby.png",
     icon:  "🏛️",
     cost:  500,
     size:  [3, 2],
@@ -140,6 +148,7 @@ function selectUpgrade(id) {
   renderFloor();
   renderShop();
   updateFloorHint();
+  if (typeof updateModeBanner === "function") updateModeBanner();
 }
 
 function updateFloorHint() {
@@ -175,7 +184,18 @@ function renderFloor() {
         // Origin cell of a placed upgrade
         const upg = FLOOR_UPGRADES.find(u => u.id === cell.upgradeId);
         el.classList.add("floor-cell--placed");
-        el.textContent = upg ? upg.icon : "?";
+        if (upg?.art) {
+          const [w, h] = upg.size;
+          const img = document.createElement("img");
+          img.className = "floor-cell-art";
+          img.src = upg.art;
+          img.alt = upg.label;
+          img.style.width = `${(w * 36) + ((w - 1) * 2) - 4}px`;
+          img.style.height = `${(h * 36) + ((h - 1) * 2) - 4}px`;
+          el.appendChild(img);
+        } else {
+          el.textContent = upg ? upg.icon : "?";
+        }
         el.title = upg ? `${upg.label} — click to remove (50% refund)` : "";
       } else if (cell && cell.ref) {
         // Non-origin cell occupied by a multi-cell upgrade
@@ -214,10 +234,13 @@ function renderShop() {
     const bottomLine = owned
       ? `<div class="shop-item-owned">✓ Placed</div>`
       : `<div class="shop-item-cost">${fmt(upg.cost)}</div>`;
+    const artHtml = upg.art
+      ? `<img class="shop-item-art" src="${upg.art}" alt="${upg.label}">`
+      : `<div class="shop-item-icon">${upg.icon}</div>`;
 
     return `
       <div class="${cls}" onclick="selectUpgrade('${upg.id}')" title="${upg.desc}">
-        <div class="shop-item-icon">${upg.icon}</div>
+        ${artHtml}
         <div class="shop-item-name">${upg.label}</div>
         ${bottomLine}
         <div class="shop-item-size">${w}×${h}</div>

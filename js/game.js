@@ -5,14 +5,16 @@ let qIdx  = 0;
 
 // ── Build a day's event queue ──────────────────────────────────
 function buildDay() {
-  const events = [];
-  if (Math.random() < 0.85) events.push(makeLoanEvent());
-  if (Math.random() < 0.60) events.push(makeLoanEvent());
-  if (Math.random() < 0.65) events.push(makeDepositEvent());
-  events.push(makeWithdrawalEvent());
-  if (Math.random() < 0.45) events.push(makeRandomEvent());
-  queue = events.sort(() => Math.random() - 0.5);
+  queue = [];
   qIdx  = 0;
+}
+
+function makeCustomerEvent() {
+  const roll = Math.random();
+  if (roll < 0.42) return makeLoanEvent();
+  if (roll < 0.68) return makeDepositEvent();
+  if (roll < 0.9) return makeWithdrawalEvent();
+  return makeRandomEvent();
 }
 
 // ── Player action ──────────────────────────────────────────────
@@ -59,24 +61,22 @@ function endOfDay() {
   renderStats();
   renderEndOfDay(loanIncome, depInt, d.dailyOverhead, dayDelta);
   saveGame();
-
-  document.getElementById("eventCard").scrollIntoView({ behavior:"smooth", block:"nearest" });
 }
 
 // ── Phase 2: player confirms, next day begins ──────────────────
 function startNextDay() {
+  document.getElementById("decisionLayer")?.classList.remove("show");
+  decisionOpen = false;
   addLog(`${gameDate(bank.day)} concluded.`, "neutral");
   bank.day++;
 
   if (checkLose()) { saveGame(); return; }
 
   buildDay();
+  startBranchDay();
   renderStats();
-  renderEvent();
   saveGame();
   startTimers();
-
-  document.getElementById("eventCard").scrollIntoView({ behavior:"smooth", block:"nearest" });
 }
 
 // ── Lose check ─────────────────────────────────────────────────
@@ -108,17 +108,18 @@ function checkLose() {
 
 // ── Menu ───────────────────────────────────────────────────────
 function openMenu() {
-  stopTimers();
+  pauseTimers();
+  decisionOpen = true;
   renderMenuSlots();
   document.getElementById("menuOverlay").classList.add("show");
 }
 
 function closeMenu() {
   document.getElementById("menuOverlay").classList.remove("show");
+  decisionOpen = false;
   document.getElementById("restartArea").innerHTML =
     `<button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">🔄 Restart New Game</button>`;
-  // Resume timers only if mid-day (not on EOD screen)
-  if (qIdx < queue.length) startTimers();
+  if (!document.getElementById("decisionLayer")?.classList.contains("show")) resumeTimers();
 }
 
 function menuSaveToSlot(slot) {
@@ -129,14 +130,13 @@ function menuSaveToSlot(slot) {
 function menuLoadFromSlot(slot) {
   if (!loadFromSlot(slot)) return;
   document.getElementById("menuOverlay").classList.remove("show");
+  decisionOpen = false;
   document.getElementById("logList").innerHTML = "";
   stopTimers();
   buildDay();
+  startBranchDay();
   renderStats();
-  renderEvent();
-  renderFloor();
   renderShop();
-  updateFloorHint();
   startTimers();
 }
 
@@ -158,23 +158,24 @@ function confirmRestart() {
 
 function doRestart() {
   document.getElementById("menuOverlay").classList.remove("show");
+  decisionOpen = false;
   restartGame();
 }
 
 // ── Restart ────────────────────────────────────────────────────
 function restartGame() {
   stopTimers();
+  decisionOpen = false;
   deleteSave();
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("logList").innerHTML = "";
   initBank();
-  initFloor();
+  branchState = defaultBranchState();
+  loadBranchImages();
   buildDay();
+  startBranchDay();
   renderStats();
-  renderEvent();
-  renderFloor();
   renderShop();
-  updateFloorHint();
   startTimers();
 }
 
@@ -183,13 +184,11 @@ function restartGame() {
   loadSettings();
   const resumed = loadGame();
   if (!resumed) initBank();
-  initFloor();
   buildDay();
+  initBranch();
+  startBranchDay();
   renderStats();
-  renderEvent();
-  renderFloor();
   renderShop();
-  updateFloorHint();
   startTimers();
 
   // Wire the menu button with touchend so it works reliably on iOS Safari,

@@ -5,23 +5,20 @@ const DIFFICULTY = {
     startingDeposits: 2_000,
     startingRep:      70,
     dailyOverhead:    10,
-    eventTimeout:     30,    // seconds per event before auto-resolve
-    dayDuration:      120,   // real seconds per game day
+    dayDuration:      60,    // real seconds per game day
   },
   normal: {
     startingCash:     5_000,
     startingDeposits: 3_000,
     startingRep:      60,
     dailyOverhead:    20,
-    eventTimeout:     20,
-    dayDuration:      90,
+    dayDuration:      60,
   },
   hard: {
     startingCash:     3_000,
     startingDeposits: 4_000,
     startingRep:      50,
     dailyOverhead:    35,
-    eventTimeout:     12,
     dayDuration:      60,
   },
 };

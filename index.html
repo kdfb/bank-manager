@@ -7,110 +7,101 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <main class="game-shell">
+    <canvas id="gameCanvas" aria-label="Bank branch game area"></canvas>
 
-  <!-- ── Header ─────────────────────────────────────────────── -->
-  <header>
-    <div class="header-left">
-      <h1>🏦 First National Bank &amp; Trust</h1>
-      <div class="day-row">
-        <p id="dayLabel">December 25, 1855</p>
-        <span class="day-time" id="dayTime">1:30</span>
+    <section class="hud desk-hud" aria-label="Bank status desk">
+      <div class="desk-service-area">
+        <div class="desk-header">
+          <div>
+            <div class="hud-title">First National Bank</div>
+            <div class="hud-date">Service Desk</div>
+          </div>
+          <div class="hud-actions">
+            <button class="icon-btn" id="ledgerToggleBtn" aria-label="Toggle ledger">Ledger</button>
+            <button class="icon-btn" id="menuBtn" aria-label="Open menu">Menu</button>
+          </div>
+        </div>
+
+        <div class="desk-event-layer" id="decisionLayer">
+          <div class="decision-card">
+            <div id="eventCard"></div>
+            <div class="dots" id="dots"></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="desk-ledger-strip" aria-label="Financial summary">
+        <div><span>Date</span><strong id="dayLabel">Dec 25, 1855</strong></div>
+        <div class="desk-meter"><span>Day Clock</span><strong id="dayTime">0:00</strong><div class="hud-timer"><div class="hud-timer-fill" id="dayTimerFill"></div></div></div>
+        <div class="desk-meter"><span>Standing</span><strong id="statRep">60 / 100</strong><div class="rep-track"><div class="rep-fill" id="repFill"></div></div></div>
+        <div><span>Cash</span><strong id="statCash">$5,000</strong></div>
+        <div><span>Assets</span><strong id="statLoans">$0</strong></div>
+        <div><span>Liabilities</span><strong id="statDeposits">$3,000</strong></div>
+        <div class="net"><span>Net Capital</span><strong id="netWorth">$2,000</strong></div>
+      </aside>
+    </section>
+
+    <div class="mode-banner" id="modeBanner">Walk to a waiting customer and press E</div>
+    <div class="interaction-prompt" id="interactionPrompt">Press E to serve</div>
+
+    <section class="build-panel" id="buildPanel" aria-label="Build mode">
+      <div class="build-head">
+        <div>
+          <div class="panel-kicker">Build Mode</div>
+          <strong>Furnishings</strong>
+        </div>
+        <button class="icon-btn" id="closeBuildBtn">Done</button>
+      </div>
+      <div class="build-tools">
+        <button class="tool-btn" id="rotateBtn">Rotate</button>
+        <button class="tool-btn" id="sellBtn">Sell</button>
+      </div>
+      <div class="shop-scroll" id="shopGrid"></div>
+    </section>
+
+    <section class="ledger-panel" id="ledgerPanel" aria-label="Transaction ledger">
+      <div class="ledger-head">
+        <div class="panel-kicker">Ledger</div>
+        <button class="icon-btn" id="ledgerCloseBtn" aria-label="Hide ledger">Hide</button>
+      </div>
+      <div class="log-list" id="logList"></div>
+    </section>
+
+    <div class="touch-controls" aria-label="Touch controls">
+      <div class="touch-dpad">
+        <button data-touch="up">▲</button>
+        <button data-touch="left">◀</button>
+        <button data-touch="down">▼</button>
+        <button data-touch="right">▶</button>
+      </div>
+      <div class="touch-actions">
+        <button id="touchActionBtn">Serve</button>
+        <button id="touchBuildBtn">Build</button>
       </div>
     </div>
-    <div class="header-right">
-      <div class="header-nw">
-        <div class="label">Net Capital</div>
-        <div class="value" id="netWorth">$2,000</div>
-      </div>
-      <button class="menu-btn" id="menuBtn">☰</button>
-    </div>
-  </header>
+  </main>
 
-  <!-- ── Day timer bar ──────────────────────────────────────── -->
-  <div class="day-timer-wrap">
-    <div class="day-timer-fill" id="dayTimerFill"></div>
-  </div>
-
-  <!-- ── Stats ──────────────────────────────────────────────── -->
-  <div class="stats">
-    <div class="stat">
-      <div class="label">Cash on Hand</div>
-      <div class="value green" id="statCash">$5,000</div>
-    </div>
-    <div class="stat">
-      <div class="label">Notes Receivable</div>
-      <div class="value blue" id="statLoans">$0</div>
-    </div>
-    <div class="stat">
-      <div class="label">Deposits Held</div>
-      <div class="value yellow" id="statDeposits">$3,000</div>
-    </div>
-    <div class="stat">
-      <div class="label">Net Earnings</div>
-      <div class="value green" id="statProfit">$0</div>
-    </div>
-    <div class="stat full-width">
-      <div class="rep-row">
-        <div class="label">Standing</div>
-        <div class="value green" id="statRep" style="font-size:15px">60 / 100</div>
-      </div>
-      <div class="rep-track">
-        <div class="rep-fill" id="repFill"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Current event ──────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-label">Daily Correspondence</div>
-    <div class="event-card" id="eventCard"></div>
-    <div class="dots" id="dots"></div>
-  </div>
-
-  <!-- ── Bank branch floor view ─────────────────────────────── -->
-  <div class="floor-section">
-    <div class="floor-header">
-      <div class="section-label" style="margin-bottom:0">Banking Hall</div>
-      <span class="floor-hint" id="floorHint">Select a furnishing below to place it</span>
-    </div>
-    <div class="floor-grid-wrap">
-      <div id="floorGrid"></div>
-    </div>
-    <div class="shop-label">Furnishings &amp; Appointments</div>
-    <div class="shop-scroll" id="shopGrid"></div>
-  </div>
-
-  <!-- ── Activity log ───────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-label">Ledger</div>
-    <div class="log-list" id="logList"></div>
-  </div>
-
-  <!-- ── Menu overlay ──────────────────────────────────────── -->
   <div class="overlay" id="menuOverlay">
     <div class="overlay-box menu-box">
       <div class="menu-header">
         <span class="menu-title">Menu</span>
-        <button class="menu-close-btn" onclick="closeMenu()">✕</button>
+        <button class="menu-close-btn" onclick="closeMenu()">×</button>
       </div>
-
       <div class="menu-section-label">Save Slots</div>
       <div id="menuSlots"></div>
-
       <div class="menu-divider"></div>
-
       <div id="restartArea">
-        <button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">🔄 Restart New Game</button>
+        <button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">Restart New Game</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Win / Lose overlay ─────────────────────────────────── -->
   <div class="overlay" id="overlay">
     <div class="overlay-box">
-      <div class="overlay-icon"  id="overlayIcon"></div>
+      <div class="overlay-icon" id="overlayIcon"></div>
       <div class="overlay-title" id="overlayTitle"></div>
-      <div class="overlay-body"  id="overlayBody"></div>
+      <div class="overlay-body" id="overlayBody"></div>
       <div class="overlay-stats" id="overlayStats"></div>
       <div class="btn-row one-col">
         <button class="btn btn-blue" onclick="restartGame()">Play Again</button>
@@ -118,7 +109,16 @@
     </div>
   </div>
 
-  <!-- ── Scripts (order matters: dependencies first) ────────── -->
+  <div class="overlay" id="eventInfoOverlay">
+    <div class="overlay-box event-info-box">
+      <div class="menu-header">
+        <span class="menu-title">Client File</span>
+        <button class="menu-close-btn" onclick="closeEventInfo()">×</button>
+      </div>
+      <div id="eventInfoBody"></div>
+    </div>
+  </div>
+
   <script src="js/constants.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/bank.js"></script>
@@ -126,7 +126,7 @@
   <script src="js/render.js"></script>
   <script src="js/timers.js"></script>
   <script src="js/floor.js"></script>
+  <script src="js/branch.js"></script>
   <script src="js/game.js"></script>
-
 </body>
 </html>

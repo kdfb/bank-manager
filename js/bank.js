@@ -36,8 +36,9 @@ function saveGame() {
     localStorage.setItem('bankSave', JSON.stringify({
       bank,
       settings,
-      floor:   typeof serializeFloor === 'function' ? serializeFloor() : [],
-      version: 1,
+      branch: typeof serializeBranch === 'function' ? serializeBranch() : null,
+      floor:  typeof serializeFloor === 'function' ? serializeFloor() : [],
+      version: 2,
     }));
   } catch (_) {}
 }
@@ -47,10 +48,11 @@ function loadGame() {
     const raw = localStorage.getItem('bankSave');
     if (!raw) return false;
     const data = JSON.parse(raw);
-    if (data.version !== 1) return false;
+    if (data.version !== 1 && data.version !== 2) return false;
     bank     = data.bank;
     settings = { ...DEFAULT_SETTINGS, ...data.settings };
-    if (typeof deserializeFloor === 'function') deserializeFloor(data.floor || []);
+    if (typeof deserializeBranch === 'function') deserializeBranch(data.version === 2 ? data.branch : data.floor);
+    else if (typeof deserializeFloor === 'function') deserializeFloor(data.floor || []);
     return true;
   } catch (_) { return false; }
 }
@@ -68,9 +70,10 @@ function saveToSlot(slot) {
     localStorage.setItem(SLOT_KEYS[slot], JSON.stringify({
       bank,
       settings,
+      branch: typeof serializeBranch === 'function' ? serializeBranch() : null,
       floor:   typeof serializeFloor === 'function' ? serializeFloor() : [],
       savedAt: Date.now(),
-      version: 1,
+      version: 2,
     }));
   } catch (_) {}
 }
@@ -80,10 +83,11 @@ function loadFromSlot(slot) {
     const raw = localStorage.getItem(SLOT_KEYS[slot]);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    if (data.version !== 1) return false;
+    if (data.version !== 1 && data.version !== 2) return false;
     bank     = data.bank;
     settings = { ...DEFAULT_SETTINGS, ...data.settings };
-    if (typeof deserializeFloor === 'function') deserializeFloor(data.floor || []);
+    if (typeof deserializeBranch === 'function') deserializeBranch(data.version === 2 ? data.branch : data.floor);
+    else if (typeof deserializeFloor === 'function') deserializeFloor(data.floor || []);
     return true;
   } catch (_) { return false; }
 }
