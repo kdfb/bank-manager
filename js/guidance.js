@@ -7,7 +7,7 @@
   const TIPS = Object.freeze([
     Object.freeze({
       id: "welcome", stage: "Getting started", title: "Open the teller wicket",
-      body: "Move to the main counter and press E or controller A. Customers join a live queue, so the first skill is deciding when to serve and when to keep moving.",
+      body: "Move to the main counter, then use the on-screen Serve button, E, or controller A. Customers join a live queue, so the first skill is deciding when to serve and when to keep moving.",
       action: "teller", actionLabel: "Show controls",
       eligible: bank => bank.day === 1 && (bank.stats?.customersServed || 0) === 0,
     }),

@@ -186,6 +186,24 @@ test("runtime performance keeps static scenery cached and background UI throttle
   assert.ok(existsSync(join(root, "tools", "runtime-audit.cjs")));
 });
 
+test("mobile play keeps secondary actions compact and supports persistent camera zoom", () => {
+  const html = readFileSync(join(root, "index.html"), "utf8");
+  const css = readFileSync(join(root, "css", "style.css"), "utf8");
+  const branch = readFileSync(join(root, "js", "branch.js"), "utf8");
+  const settings = readFileSync(join(root, "js", "settings.js"), "utf8");
+  assert.match(html, /id="mobileMoreBtn"[^>]*aria-expanded="false"/);
+  assert.match(html, /id="mobileQuickMenu"[^>]*hidden/);
+  assert.match(html, /id="zoomOutBtn"/);
+  assert.match(html, /id="zoomResetBtn"/);
+  assert.match(html, /id="zoomInBtn"/);
+  assert.match(css, /\.hud-actions \.icon-btn:disabled\s*\{\s*display:\s*none/);
+  assert.match(css, /\.guidance-card:not\(\.expanded\) p/);
+  assert.match(branch, /handleCanvasPointerMove/);
+  assert.match(branch, /fitScale \* \(settings\?\.cameraZoom/);
+  assert.match(settings, /cameraZoom:\s*1\.25/);
+  assert.match(settings, /Math\.max\(0\.8, Math\.min\(2\.2/);
+});
+
 test("one modal owns focus while incompatible branch panels close each other", () => {
   const help = readFileSync(join(root, "js", "help.js"), "utf8");
   const branch = readFileSync(join(root, "js", "branch.js"), "utf8");

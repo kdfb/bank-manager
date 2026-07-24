@@ -1225,6 +1225,7 @@ kbd {
 .guidance-card p { margin: 7px 0 10px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .guidance-actions { display: flex; align-items: center; gap: 8px; }
 .guidance-skip { border: 0; background: transparent; color: var(--muted); font-size: 10px; text-decoration: underline; cursor: pointer; }
+.guidance-details { display: none; }
 @keyframes guidance-arrive { from { opacity: 0; transform: translateY(8px); } }
 
 .settings-panel { display: grid; gap: 6px; padding: 0 12px 10px; }
@@ -1539,4 +1540,297 @@ body.decision-open .control-hints { display: none !important; }
   .policy-option,
   .assignment-btn,
   select { min-height: 44px; }
+}
+
+/* Mobile play surface: compact command bar, focused camera, and deliberate controls. */
+.mobile-bank-date,
+.mobile-more-btn,
+.mobile-quick-menu { display: none; }
+
+.zoom-controls {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 12;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(224, 183, 95, .38);
+  border-radius: 999px;
+  background: rgba(29, 18, 12, .88);
+  box-shadow: 0 8px 24px rgba(10, 4, 1, .34);
+  backdrop-filter: blur(8px);
+}
+.zoom-controls button {
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid rgba(224, 183, 95, .2);
+  background: transparent;
+  color: #f5dfb6;
+  font-weight: 850;
+  cursor: pointer;
+}
+.zoom-controls button:last-child { border-right: 0; }
+.zoom-controls button:active { background: rgba(224, 183, 95, .16); }
+#zoomResetBtn { min-width: 52px; color: var(--muted); font-size: 9px; }
+
+body.decision-open .touch-controls,
+body.decision-open .zoom-controls,
+body.modal-open .touch-controls,
+body.modal-open .zoom-controls { display: none !important; }
+
+@media (max-width: 760px) {
+  #gameCanvas { touch-action: none; }
+
+  .hud {
+    top: max(6px, env(safe-area-inset-top));
+    right: max(6px, env(safe-area-inset-right));
+    left: max(6px, env(safe-area-inset-left));
+    display: grid;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 9px;
+    background: rgba(50, 31, 20, .94);
+    box-shadow: 0 8px 22px rgba(10, 4, 1, .42);
+    backdrop-filter: blur(10px);
+  }
+  .desk-service-area,
+  .desk-ledger-strip { padding: 6px 7px; }
+  .desk-header { display: grid; align-items: stretch; gap: 6px; }
+  .desk-header > div:first-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 8px;
+  }
+  .hud-title { grid-column: 1 / -1; font-size: 16px; line-height: 1.1; }
+  .hud-date { overflow: hidden; margin: 1px 0 0; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-bank-date { display: block; color: #bca98e; font-size: 9px; white-space: nowrap; }
+
+  .hud-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .hud-actions .icon-btn { min-height: 38px; padding: 5px 7px; font-size: 10px; }
+  .hud-actions .icon-btn:disabled { display: none; }
+  #helpBtn,
+  #ledgerToggleBtn,
+  #menuBtn { display: none; }
+  .mobile-more-btn { display: block; }
+
+  .desk-ledger-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    overflow: visible;
+  }
+  .desk-ledger-strip > div,
+  .desk-meter,
+  .desk-ledger-strip .desk-meter { min-height: 39px; padding: 4px 6px; }
+  .desk-ledger-strip strong,
+  .desk-meter strong { font-size: 12px; }
+  .desk-ledger-strip > div span { font-size: 8px; }
+  .stat-date,
+  .stat-loans,
+  .stat-deposits,
+  .stat-debt { display: none !important; }
+
+  .mobile-quick-menu {
+    position: fixed;
+    top: calc(max(6px, env(safe-area-inset-top)) + 174px);
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 35;
+    width: min(210px, calc(100vw - 24px));
+    padding: 6px;
+    border: 1px solid rgba(224, 183, 95, .42);
+    border-radius: 9px;
+    background: rgba(37, 23, 15, .98);
+    box-shadow: 0 16px 36px rgba(10, 4, 1, .55);
+  }
+  .mobile-quick-menu:not([hidden]) { display: grid; gap: 4px; }
+  .mobile-quick-menu button {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(255, 245, 218, .06);
+    color: var(--text);
+    text-align: left;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .mobile-quick-menu button:active { background: rgba(224, 183, 95, .16); }
+
+  .mode-banner {
+    top: calc(max(6px, env(safe-area-inset-top)) + 174px);
+    right: max(8px, env(safe-area-inset-right));
+    left: max(8px, env(safe-area-inset-left));
+    overflow: hidden;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .branch-status {
+    top: calc(max(6px, env(safe-area-inset-top)) + 213px);
+    right: max(8px, env(safe-area-inset-right));
+    left: max(8px, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: auto minmax(72px, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    padding: 7px 10px;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+  }
+  .branch-status > div:first-child { min-width: 86px; }
+  .branch-status > div:first-child > span { display: none; }
+  .branch-status .queue-track { order: 2; margin: 0; }
+  .branch-status .queue-detail { display: none; }
+
+  .guidance-card {
+    top: calc(max(6px, env(safe-area-inset-top)) + 252px);
+    right: max(10px, env(safe-area-inset-right));
+    bottom: auto;
+    left: max(10px, env(safe-area-inset-left));
+    width: auto;
+    padding: 10px 11px;
+    border-radius: 9px;
+    background: rgba(50, 32, 22, .97);
+    box-shadow: 0 12px 28px rgba(10, 4, 1, .44);
+  }
+  .guidance-card > strong { margin-top: 1px; font-size: 15px; }
+  .guidance-card p { margin: 6px 0 8px; font-size: 10px; }
+  .guidance-card:not(.expanded) p { display: none; }
+  .guidance-head button { min-width: 32px; min-height: 32px; }
+  .guidance-actions { margin-top: 7px; }
+  .guidance-details { display: inline-block; border: 0; background: transparent; color: var(--blue); font-size: 10px; text-decoration: underline; }
+
+  .touch-controls {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    align-items: end;
+  }
+  .touch-dpad {
+    grid-template-columns: repeat(3, 42px);
+    grid-template-rows: repeat(3, 42px);
+    gap: 2px;
+  }
+  .touch-dpad button,
+  .touch-actions button {
+    border-color: rgba(224, 183, 95, .42);
+    background: rgba(29, 18, 12, .86);
+    box-shadow: 0 5px 16px rgba(10, 4, 1, .32);
+    backdrop-filter: blur(8px);
+  }
+  .touch-dpad button { border-radius: 50%; color: #f5dfb6; }
+  .touch-dpad button:active,
+  .touch-actions button:active { background: rgba(120, 187, 112, .26); transform: scale(.96); }
+  .touch-actions { gap: 6px; }
+  .touch-actions button { width: 86px; height: 50px; border-radius: 12px; }
+  #touchActionBtn { border-color: rgba(120, 187, 112, .68); background: rgba(30, 52, 31, .92); }
+  #touchBuildBtn:disabled { display: none; }
+
+  .zoom-controls {
+    right: auto;
+    bottom: max(12px, calc(env(safe-area-inset-bottom) + 2px));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .zoom-controls button { min-width: 36px; min-height: 40px; padding: 0 7px; }
+  #zoomResetBtn { min-width: 48px; }
+
+  .interaction-prompt {
+    right: auto;
+    bottom: max(148px, calc(env(safe-area-inset-bottom) + 148px));
+    left: 50%;
+    width: min(220px, calc(100vw - 32px));
+    max-width: 220px;
+    padding: 7px 9px;
+    transform: translateX(-50%);
+    font-size: 10px;
+    text-align: center;
+  }
+
+  .build-panel,
+  .ledger-panel { bottom: max(144px, calc(env(safe-area-inset-bottom) + 144px)); }
+}
+
+@media (max-width: 900px) and (max-height: 500px) {
+  .hud {
+    top: max(6px, env(safe-area-inset-top));
+    right: max(6px, env(safe-area-inset-right));
+    left: max(6px, env(safe-area-inset-left));
+    grid-template-columns: minmax(260px, .8fr) minmax(0, 1.35fr);
+    gap: 5px;
+    width: auto;
+    min-height: 0;
+    padding: 5px;
+    transform: none;
+  }
+  .desk-service-area,
+  .desk-ledger-strip { padding: 5px 6px; }
+  .desk-header { display: grid; gap: 4px; }
+  .hud-title { font-size: 14px; }
+  .hud-date { font-size: 8px; }
+  .hud-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .hud-actions .icon-btn { min-height: 32px; padding: 4px 5px; font-size: 9px; }
+  .hud-actions .icon-btn:disabled { display: none; }
+  #helpBtn,
+  #ledgerToggleBtn,
+  #menuBtn { display: none; }
+  .mobile-more-btn { display: block; }
+  .desk-ledger-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; }
+  .desk-ledger-strip > div,
+  .desk-meter,
+  .desk-ledger-strip .desk-meter { min-height: 44px; padding: 4px 6px; }
+  .stat-date,
+  .stat-loans,
+  .stat-deposits,
+  .stat-debt { display: none !important; }
+
+  .mobile-quick-menu {
+    position: fixed;
+    top: 82px;
+    left: 12px;
+    z-index: 35;
+    width: 210px;
+    padding: 6px;
+    border: 1px solid rgba(224, 183, 95, .42);
+    border-radius: 9px;
+    background: rgba(37, 23, 15, .98);
+    box-shadow: 0 16px 36px rgba(10, 4, 1, .55);
+  }
+  .mobile-quick-menu:not([hidden]) { display: grid; gap: 4px; }
+  .mobile-quick-menu button { min-height: 40px; padding: 7px 10px; border: 0; border-radius: 6px; background: rgba(255, 245, 218, .06); text-align: left; font-size: 10px; }
+
+  .mode-banner { top: 94px; left: 8px; max-width: 330px; padding: 6px 9px; font-size: 9px; }
+  .branch-status { top: 94px; right: 8px; width: 220px; padding: 7px 9px; }
+  .guidance-card {
+    top: 132px;
+    bottom: auto;
+    left: 8px;
+    width: min(300px, calc(100vw - 16px));
+    padding: 9px 10px;
+  }
+  .guidance-card > strong { font-size: 14px; }
+  .guidance-card:not(.expanded) p { display: none; }
+  .guidance-details { display: inline-block; border: 0; background: transparent; color: var(--blue); font-size: 9px; text-decoration: underline; }
+
+  .touch-controls { display: flex; right: 10px; bottom: max(8px, env(safe-area-inset-bottom)); left: 10px; }
+  .control-hints { display: none; }
+  .touch-dpad { grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); gap: 2px; }
+  .touch-dpad button { border-radius: 50%; }
+  .touch-actions button { width: 78px; height: 44px; }
+  #touchBuildBtn:disabled { display: none; }
+  .zoom-controls { right: auto; bottom: max(9px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
+  .zoom-controls button { min-height: 38px; }
+  .interaction-prompt { right: auto; bottom: 88px; left: 50%; width: 210px; transform: translateX(-50%); font-size: 9px; text-align: center; }
+  .build-panel,
+  .ledger-panel { top: 94px; right: 100px; bottom: 8px; left: 120px; width: auto; }
 }

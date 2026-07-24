@@ -1,4 +1,4 @@
-const CACHE_NAME = "bank-manager-shell-v14";
+const CACHE_NAME = "bank-manager-shell-v16";
 const APP_SHELL = [
   "./",
   "./index.html",

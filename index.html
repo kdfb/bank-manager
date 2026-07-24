@@ -20,6 +20,7 @@
           <div>
             <div class="hud-title">Frontier Trust & Loan</div>
             <div class="hud-date" id="bankSubtitle">Silver Creek · Local Banker</div>
+            <div class="mobile-bank-date" id="mobileDayLabel">Dec 25, 1855</div>
           </div>
           <div class="hud-actions">
             <button class="icon-btn primary-action" id="operationsBtn" aria-label="Open operations">Manage</button>
@@ -28,21 +29,28 @@
             <button class="icon-btn" id="buildModeBtn" aria-label="Enter build mode">Build</button>
             <button class="icon-btn" id="ledgerToggleBtn" aria-label="Toggle ledger">Ledger</button>
             <button class="icon-btn" id="menuBtn" aria-label="Open menu">Save</button>
+            <button class="icon-btn mobile-more-btn" id="mobileMoreBtn" aria-label="Show more actions" aria-expanded="false">More</button>
           </div>
         </div>
       </div>
 
       <aside class="desk-ledger-strip" aria-label="Financial summary">
-        <div><span>Date</span><strong id="dayLabel">Dec 25, 1855</strong></div>
-        <div class="desk-meter"><span>Day Clock</span><strong id="dayTime">0:00</strong><div class="hud-timer"><div class="hud-timer-fill" id="dayTimerFill"></div></div></div>
-        <div class="desk-meter"><span>Standing</span><strong id="statRep">60 / 100</strong><div class="rep-track"><div class="rep-fill" id="repFill"></div></div></div>
-        <div><span>Cash</span><strong id="statCash">$5,000</strong></div>
-        <div><span>Loans</span><strong id="statLoans">$0</strong></div>
-        <div><span>Deposits</span><strong id="statDeposits">$3,000</strong></div>
-        <div><span>Debt</span><strong id="statDebt">$1,000</strong></div>
-        <div class="net"><span>Net Capital</span><strong id="netWorth">$2,000</strong></div>
+        <div class="stat-date"><span>Date</span><strong id="dayLabel">Dec 25, 1855</strong></div>
+        <div class="desk-meter stat-clock"><span>Day Clock</span><strong id="dayTime">0:00</strong><div class="hud-timer"><div class="hud-timer-fill" id="dayTimerFill"></div></div></div>
+        <div class="desk-meter stat-standing"><span>Standing</span><strong id="statRep">60 / 100</strong><div class="rep-track"><div class="rep-fill" id="repFill"></div></div></div>
+        <div class="stat-cash"><span>Cash</span><strong id="statCash">$5,000</strong></div>
+        <div class="stat-loans"><span>Loans</span><strong id="statLoans">$0</strong></div>
+        <div class="stat-deposits"><span>Deposits</span><strong id="statDeposits">$3,000</strong></div>
+        <div class="stat-debt"><span>Debt</span><strong id="statDebt">$1,000</strong></div>
+        <div class="net stat-capital"><span>Net Capital</span><strong id="netWorth">$2,000</strong></div>
       </aside>
     </section>
+
+    <div class="mobile-quick-menu" id="mobileQuickMenu" aria-label="More game actions" hidden>
+      <button id="mobileLedgerBtn">Ledger</button>
+      <button id="mobileGuideBtn">Guide</button>
+      <button id="mobileSaveBtn">Save &amp; settings</button>
+    </div>
 
     <aside class="desk-event-layer" id="decisionLayer" aria-label="Active customer decision">
       <div class="decision-card">
@@ -114,6 +122,12 @@
         <button id="touchActionBtn">Serve</button>
         <button id="touchBuildBtn">Build</button>
       </div>
+    </div>
+
+    <div class="zoom-controls" aria-label="Branch zoom controls">
+      <button id="zoomOutBtn" aria-label="Zoom out">−</button>
+      <button id="zoomResetBtn" aria-label="Reset branch zoom"><span id="zoomLevel">125%</span></button>
+      <button id="zoomInBtn" aria-label="Zoom in">+</button>
     </div>
   </main>
 
