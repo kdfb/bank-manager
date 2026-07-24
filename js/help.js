@@ -9,6 +9,7 @@ function visibleModal() {
 function showAppDialog(id, focusSelector) {
   const dialog = document.getElementById(id);
   if (!dialog) return false;
+  if (typeof setMobileQuickMenu === "function") setMobileQuickMenu(false);
   const active = document.activeElement;
   if (active && active !== document.body) dialogReturnFocus = active;
   document.querySelectorAll('.overlay[role="dialog"].show').forEach(open => {
@@ -72,6 +73,7 @@ function renderGuidance() {
     <p>${tip.body}</p>
     <div class="guidance-actions">
       <button class="btn btn-blue btn-small" onclick="useGuidanceAction('${tip.id}', '${tip.action}')">${tip.actionLabel}</button>
+      <button class="guidance-details" onclick="toggleGuidanceDetails()" aria-expanded="false">Why?</button>
       <button class="guidance-skip" onclick="dismissGuidance('${tip.id}')">Got it</button>
     </div>`;
   card.classList.add("show");
@@ -81,7 +83,19 @@ function dismissGuidance(id) {
   BankGuidance.markSeen(bank, id);
   const card = document.getElementById("guidanceCard");
   card?.classList.remove("show");
+  card?.classList.remove("expanded");
   saveGame();
+}
+
+function toggleGuidanceDetails() {
+  const card = document.getElementById("guidanceCard");
+  if (!card) return;
+  const expanded = card.classList.toggle("expanded");
+  const button = card.querySelector(".guidance-details");
+  if (button) {
+    button.setAttribute("aria-expanded", String(expanded));
+    button.textContent = expanded ? "Less" : "Why?";
+  }
 }
 
 function useGuidanceAction(id, action) {

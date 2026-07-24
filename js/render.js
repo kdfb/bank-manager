@@ -65,9 +65,11 @@ function renderStats() {
   const debtEl = document.getElementById("statDebt");
   const repEl = document.getElementById("statRep");
   const subtitleEl = document.getElementById("bankSubtitle");
+  const mobileDayLabel = document.getElementById("mobileDayLabel");
   if (!dayLabel) return;
 
   dayLabel.textContent     = gameDate(bank.day);
+  if (mobileDayLabel) mobileDayLabel.textContent = gameDate(bank.day);
   netWorthEl.textContent   = fmt(nw);
   netWorthEl.style.color   = nw >= 0 ? "var(--green)" : "var(--red)";
   cashEl.textContent       = fmt(bank.cash);
@@ -89,6 +91,7 @@ function renderStats() {
   const features = BankOperations.featureAvailability(bank);
   const strategyButton = document.getElementById("strategyBtn");
   const buildButton = document.getElementById("buildModeBtn");
+  const touchBuildButton = document.getElementById("touchBuildBtn");
   if (strategyButton) {
     strategyButton.disabled = !features.regional;
     strategyButton.textContent = features.regional ? "Regions" : "Regions 🔒";
@@ -100,6 +103,10 @@ function renderStats() {
     buildButton.textContent = features.building ? "Build" : "Build 🔒";
     buildButton.title = features.building ? "Enter Build mode" : "Unlocks after serving three customers";
     buildButton.setAttribute("aria-label", features.building ? "Enter build mode" : "Build mode locked until three customers are served");
+  }
+  if (touchBuildButton) {
+    touchBuildButton.disabled = !features.building;
+    touchBuildButton.title = features.building ? "Enter Build mode" : "Build mode unlocks after three customers";
   }
 
   const fill = document.getElementById("repFill");

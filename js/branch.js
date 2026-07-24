@@ -20,6 +20,10 @@ let lastModalDrawAt = 0;
 let resizeRaf = null;
 let staticScene = null;
 let staticSceneDirty = true;
+let pinchPointers = new Map();
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
+let suppressCanvasClickUntil = 0;
 
 const WESTERN_CHARACTER_ATLAS = "assets/western/characters-atlas.png";
 const WESTERN_FURNITURE_ATLAS = "assets/western/furniture-atlas.png";
@@ -86,6 +90,7 @@ function initBranch() {
   loadBranchImages();
   bindBranchInput();
   resizeCanvas();
+  updateZoomControls();
   window.addEventListener("resize", requestCanvasResize);
   renderShop();
   updateBuildPanel();
@@ -149,7 +154,18 @@ function bindBranchInput() {
 
   canvas.addEventListener("mousemove", e => { pointerTile = eventToTile(e); });
   canvas.addEventListener("mouseleave", () => { pointerTile = null; });
-  canvas.addEventListener("click", e => handleCanvasClick(eventToTile(e)));
+  canvas.addEventListener("click", e => {
+    if (performance.now() < suppressCanvasClickUntil) return;
+    handleCanvasClick(eventToTile(e));
+  });
+  canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    setCameraZoom(settings.cameraZoom + (e.deltaY < 0 ? 0.1 : -0.1));
+  }, { passive: false });
+  canvas.addEventListener("pointerdown", handleCanvasPointerDown);
+  canvas.addEventListener("pointermove", handleCanvasPointerMove);
+  canvas.addEventListener("pointerup", handleCanvasPointerEnd);
+  canvas.addEventListener("pointercancel", handleCanvasPointerEnd);
 
   document.getElementById("closeBuildBtn").addEventListener("click", () => setBuildMode(false));
   document.getElementById("buildModeBtn").addEventListener("click", toggleBuildMode);
@@ -159,6 +175,10 @@ function bindBranchInput() {
   document.getElementById("sellBtn").addEventListener("click", toggleSellMode);
   document.getElementById("touchActionBtn").addEventListener("click", interactWithCustomer);
   document.getElementById("touchBuildBtn").addEventListener("click", toggleBuildMode);
+  document.getElementById("zoomOutBtn")?.addEventListener("click", () => setCameraZoom(settings.cameraZoom - 0.15));
+  document.getElementById("zoomInBtn")?.addEventListener("click", () => setCameraZoom(settings.cameraZoom + 0.15));
+  document.getElementById("zoomResetBtn")?.addEventListener("click", () => setCameraZoom(DEFAULT_SETTINGS.cameraZoom));
+  bindMobileQuickMenu();
   document.querySelectorAll("[data-touch]").forEach(btn => {
     const dir = btn.dataset.touch;
     btn.addEventListener("pointerdown", e => { e.preventDefault(); touchDown[dir] = true; });
@@ -166,6 +186,88 @@ function bindBranchInput() {
     btn.addEventListener("pointercancel", () => { touchDown[dir] = false; });
     btn.addEventListener("pointerleave", () => { touchDown[dir] = false; });
   });
+}
+
+function handleCanvasPointerDown(event) {
+  if (event.pointerType !== "touch") return;
+  pinchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (pinchPointers.size === 2) {
+    const [first, second] = [...pinchPointers.values()];
+    pinchStartDistance = Math.hypot(second.x - first.x, second.y - first.y);
+    pinchStartZoom = settings.cameraZoom;
+    suppressCanvasClickUntil = performance.now() + 500;
+  }
+}
+
+function handleCanvasPointerMove(event) {
+  if (!pinchPointers.has(event.pointerId)) return;
+  pinchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (pinchPointers.size !== 2 || pinchStartDistance <= 0) return;
+  event.preventDefault();
+  const [first, second] = [...pinchPointers.values()];
+  const distance = Math.hypot(second.x - first.x, second.y - first.y);
+  setCameraZoom(pinchStartZoom * (distance / pinchStartDistance), false);
+  suppressCanvasClickUntil = performance.now() + 500;
+}
+
+function handleCanvasPointerEnd(event) {
+  const wasPinching = pinchStartDistance > 0;
+  pinchPointers.delete(event.pointerId);
+  if (pinchPointers.size < 2) {
+    pinchStartDistance = 0;
+    if (wasPinching) saveSettings();
+  }
+}
+
+function setCameraZoom(value, persist = true) {
+  const zoom = Math.round(Math.max(0.8, Math.min(2.2, Number(value) || DEFAULT_SETTINGS.cameraZoom)) * 20) / 20;
+  settings.cameraZoom = zoom;
+  if (persist) saveSettings();
+  updateZoomControls();
+  return zoom;
+}
+
+function updateZoomControls() {
+  const zoom = Number(settings?.cameraZoom || DEFAULT_SETTINGS.cameraZoom);
+  const label = document.getElementById("zoomLevel");
+  const out = document.getElementById("zoomOutBtn");
+  const inside = document.getElementById("zoomInBtn");
+  if (label) label.textContent = `${Math.round(zoom * 100)}%`;
+  if (out) out.disabled = zoom <= 0.8;
+  if (inside) inside.disabled = zoom >= 2.2;
+}
+
+function setMobileQuickMenu(open) {
+  const menu = document.getElementById("mobileQuickMenu");
+  const button = document.getElementById("mobileMoreBtn");
+  if (!menu || !button) return;
+  menu.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+  button.classList.toggle("active", open);
+}
+
+function bindMobileQuickMenu() {
+  const menu = document.getElementById("mobileQuickMenu");
+  const button = document.getElementById("mobileMoreBtn");
+  if (!menu || !button) return;
+  button.addEventListener("click", event => {
+    event.stopPropagation();
+    setMobileQuickMenu(menu.hidden);
+  });
+  menu.addEventListener("click", event => event.stopPropagation());
+  document.getElementById("mobileLedgerBtn")?.addEventListener("click", () => {
+    setMobileQuickMenu(false);
+    setLedgerVisible(true);
+  });
+  document.getElementById("mobileGuideBtn")?.addEventListener("click", () => {
+    setMobileQuickMenu(false);
+    openGuide();
+  });
+  document.getElementById("mobileSaveBtn")?.addEventListener("click", () => {
+    setMobileQuickMenu(false);
+    openMenu();
+  });
+  document.addEventListener("click", () => setMobileQuickMenu(false));
 }
 
 function startBranchLoop() {
@@ -453,16 +555,35 @@ function drawTellerMarkers() {
 
 function getCamera() {
   const mobile = window.innerWidth <= 760;
+  const landscapePhone = window.innerWidth <= 900 && window.innerHeight <= 500;
+  const mobileLayout = mobile || landscapePhone;
   const compact = window.innerWidth <= 900;
-  const margin = mobile ? 10 : 24;
-  const reservedTop = mobile ? 326 : compact ? 225 : 112;
-  const reservedBottom = mobile ? 168 : 18;
-  const availableHeight = Math.max(300, window.innerHeight - reservedTop - reservedBottom);
-  const scale = Math.min((window.innerWidth - margin * 2) / BRANCH_W, availableHeight / BRANCH_H, 1.28);
+  const margin = mobileLayout ? 10 : 24;
+  const reservedTop = landscapePhone ? 94 : mobile ? 252 : compact ? 225 : 112;
+  const reservedBottom = landscapePhone ? 104 : mobile ? 146 : 18;
+  const availableHeight = Math.max(landscapePhone ? 160 : 300, window.innerHeight - reservedTop - reservedBottom);
+  const fitScale = Math.min((window.innerWidth - margin * 2) / BRANCH_W, availableHeight / BRANCH_H, 1.28);
+  const scale = fitScale * (settings?.cameraZoom || DEFAULT_SETTINGS.cameraZoom);
+  const viewportLeft = margin;
+  const viewportRight = window.innerWidth - margin;
+  const viewportTop = reservedTop;
+  const viewportBottom = reservedTop + availableHeight;
+  const contentWidth = BRANCH_W * scale;
+  const contentHeight = BRANCH_H * scale;
+  const focusX = branchState?.player?.x ?? BRANCH_W / 2;
+  const focusY = branchState?.player?.y ?? BRANCH_H / 2;
+  const centeredX = window.innerWidth / 2 - focusX * scale;
+  const centeredY = reservedTop + availableHeight / 2 - focusY * scale;
+  const x = contentWidth <= viewportRight - viewportLeft
+    ? viewportLeft + (viewportRight - viewportLeft - contentWidth) / 2
+    : Math.max(viewportRight - contentWidth, Math.min(viewportLeft, centeredX));
+  const y = contentHeight <= viewportBottom - viewportTop
+    ? viewportTop + (viewportBottom - viewportTop - contentHeight) / 2
+    : Math.max(viewportBottom - contentHeight, Math.min(viewportTop, centeredY));
   return {
     scale,
-    x: Math.floor((window.innerWidth - BRANCH_W * scale) / 2),
-    y: Math.floor(reservedTop + (availableHeight - BRANCH_H * scale) / 2),
+    x: Math.floor(x),
+    y: Math.floor(y),
   };
 }
 
@@ -895,6 +1016,7 @@ function activateControllerBuildCursor() {
 }
 
 function closeTopMode() {
+  if (!document.getElementById("mobileQuickMenu")?.hidden) { setMobileQuickMenu(false); return; }
   if (document.getElementById("legacyOverlay")?.classList.contains("show")) { closeLegacyConclusion(); return; }
   if (document.getElementById("guideOverlay")?.classList.contains("show")) { closeGuide(); return; }
   if (document.getElementById("strategyOverlay")?.classList.contains("show")) { closeStrategy(); return; }
@@ -936,7 +1058,10 @@ function updateInteractionPrompt() {
   const ready = frontReadyCustomer();
   const nearWicket = isNearTellerWicket();
   el.classList.toggle("show", branchState.tellerLocked || (!branchState.tellerLocked && nearWicket));
-  const action = typeof BankControls !== "undefined" && BankControls.usesGamepad() ? "Press A" : "Press E";
+  const touchLayout = window.innerWidth <= 760 || (window.innerWidth <= 900 && window.innerHeight <= 500) || window.matchMedia?.("(pointer: coarse)").matches;
+  const action = typeof BankControls !== "undefined" && BankControls.usesGamepad()
+    ? "Press A"
+    : touchLayout ? "Tap Serve" : "Press E";
   if (branchState.tellerLocked && ready) el.textContent = `${action} · Review customer`;
   else if (branchState.tellerLocked) el.textContent = "Wicket open · waiting for a customer";
   else if (nearWicket) el.textContent = `${action} · Open teller wicket`;

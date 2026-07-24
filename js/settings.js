@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   highContrast: false,
   reducedMotion: false,
   textScale: "normal",
+  cameraZoom: 1.25,
   controllerVibration: true,
   timerSpeed:   1.0,       // multiplier — reserved for a future speed toggle
 };
@@ -38,6 +39,9 @@ function normalizeSettings(source) {
   value.reducedMotion = Boolean(value.reducedMotion);
   value.controllerVibration = value.controllerVibration !== false;
   value.textScale = ["normal", "large", "xlarge"].includes(value.textScale) ? value.textScale : "normal";
+  value.cameraZoom = Number.isFinite(Number(value.cameraZoom))
+    ? Math.max(0.8, Math.min(2.2, Number(value.cameraZoom)))
+    : DEFAULT_SETTINGS.cameraZoom;
   return value;
 }
 
@@ -50,7 +54,7 @@ function applySettings() {
 }
 
 function setSetting(key, value) {
-  if (!["soundEnabled", "soundVolume", "tutorialsEnabled", "highContrast", "reducedMotion", "textScale", "controllerVibration"].includes(key)) return false;
+  if (!["soundEnabled", "soundVolume", "tutorialsEnabled", "highContrast", "reducedMotion", "textScale", "cameraZoom", "controllerVibration"].includes(key)) return false;
   settings = normalizeSettings({ ...settings, [key]: value });
   saveSettings();
   return true;
