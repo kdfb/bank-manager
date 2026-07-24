@@ -1,0 +1,65 @@
+{
+  "name": "bank-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A hands-on banking management and strategy game vertical slice.",
+  "author": "KDFB",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node --test",
+    "check": "node tools/check.mjs && node --test",
+    "balance": "node tools/balance.mjs",
+    "audit:runtime": "electron tools/runtime-audit.cjs",
+    "assets:store": "node tools/store-assets.mjs",
+    "capture:store": "electron tools/capture-store.cjs",
+    "desktop": "electron .",
+    "package:windows": "electron-builder --win portable",
+    "package:windows:portable": "electron-builder --win portable",
+    "package:windows:installer": "electron-builder --win nsis",
+    "package:windows:all": "electron-builder --win portable nsis",
+    "release:manifest": "node tools/release-manifest.mjs",
+    "package:dir": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3",
+    "sharp": "0.34.5"
+  },
+  "build": {
+    "appId": "ca.kdfb.bankmanager",
+    "productName": "Bank Manager",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "index.html",
+      "manifest.webmanifest",
+      "service-worker.js",
+      "css/**/*",
+      "js/**/*",
+      "assets/**/*",
+      "!assets/store/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/release/app-icon.ico",
+      "target": "portable",
+      "artifactName": "Bank-Manager-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Bank-Manager-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "artifactName": "Bank-Manager-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

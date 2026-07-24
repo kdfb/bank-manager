@@ -1,0 +1,77 @@
+{
+  "source": "key-art-master.png",
+  "sourceDimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "specification": "Steamworks graphical assets dimensions current July 2026",
+  "rules": "https://partner.steamgames.com/doc/store/assets/rules",
+  "deliverables": [
+    {
+      "file": "store-header.jpg",
+      "width": 920,
+      "height": 430,
+      "sha256": "315061dfd2b27bf18520f2ef0cb21c264654e0b40f17867b5bf458cca5583c28"
+    },
+    {
+      "file": "store-small.jpg",
+      "width": 462,
+      "height": 174,
+      "sha256": "3351f6b811a9ef7384310721b1147853d4cfb95dd66d8c47403e592eae420451"
+    },
+    {
+      "file": "store-main.jpg",
+      "width": 1232,
+      "height": 706,
+      "sha256": "3bd044ac8bf5c67eefebbdae429f577dde31fc94d3e87c0ce40618de1f24da22"
+    },
+    {
+      "file": "store-vertical.jpg",
+      "width": 748,
+      "height": 896,
+      "sha256": "183dc4b9da58b2d167cad059cf2136df4b9fd76efaba00c24ec83e24cf235d2e"
+    },
+    {
+      "file": "library-capsule.jpg",
+      "width": 600,
+      "height": 900,
+      "sha256": "59ad1fb36b646a3293d110850e1a0aded495b8d0383f6a27b75a9675534762c5"
+    },
+    {
+      "file": "library-header.jpg",
+      "width": 920,
+      "height": 430,
+      "sha256": "315061dfd2b27bf18520f2ef0cb21c264654e0b40f17867b5bf458cca5583c28"
+    },
+    {
+      "file": "page-background.jpg",
+      "width": 1438,
+      "height": 810,
+      "sha256": "284ce629bf35fd374ebc933cd5131916bf720e5c01ba1875b88f278231c65bc9"
+    },
+    {
+      "file": "library-hero.png",
+      "width": 3840,
+      "height": 1240,
+      "sha256": "06f8061278fed97533c9c1179b826a45870bb9bf25fa5f48ff55e00f1edf4381"
+    },
+    {
+      "file": "library-logo.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "6dca7ddea0b5520743fefca074a3386393c5757564c75bae686625c6de956468"
+    },
+    {
+      "file": "shortcut-icon.png",
+      "width": 256,
+      "height": 256,
+      "sha256": "95e7ea3accd68b89ea2dcedd952d5291fbe569e8030f8c49798ef48f7455986b"
+    },
+    {
+      "file": "app-icon.jpg",
+      "width": 184,
+      "height": 184,
+      "sha256": "f3172e9806e7404284df976346eeea5b6bd170fcb96adcffd463c711cde66bc1"
+    }
+  ]
+}

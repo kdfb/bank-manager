@@ -6,25 +6,25 @@ const FLOOR_ROWS = 6;
 const FLOOR_UPGRADES = [
   {
     id:    "teller_window",
-    label: "Teller Window",
+    label: "Brass Teller Cage",
     art:   "assets/office/teller-window.png",
     icon:  "🪟",
     cost:  150,
     size:  [1, 1],
-    desc:  "An extra teller serves more customers. +1 event per day.",
+    desc:  "Adds a second public-counter workstation so another teller can process the queue.",
   },
   {
     id:    "risk_desk",
-    label: "Risk Analyst",
+    label: "Loan Officer's Desk",
     art:   "assets/office/risk-desk.png",
     icon:  "🖥️",
     cost:  250,
-    size:  [2, 1],
-    desc:  "In-house analyst: high-risk loans gain a small rep bonus.",
+    size:  [2, 2],
+    desc:  "Adds a loan workstation where an assigned officer can process credit applications.",
   },
   {
     id:    "vault_upgrade",
-    label: "Vault Upgrade",
+    label: "Reinforced Iron Safe",
     art:   "assets/office/vault-upgrade.png",
     icon:  "🔒",
     cost:  400,
@@ -33,16 +33,16 @@ const FLOOR_UPGRADES = [
   },
   {
     id:    "pr_office",
-    label: "PR Office",
+    label: "Telegraph & Publicity Desk",
     art:   "assets/office/pr-office.png",
     icon:  "📣",
     cost:  200,
-    size:  [2, 1],
+    size:  [2, 2],
     desc:  "Reputation gains from positive events increased by +2.",
   },
   {
     id:    "atm",
-    label: "Cashier's Box",
+    label: "Express Cash Window",
     art:   "assets/office/cashiers-box.png",
     icon:  "🏧",
     cost:  100,
@@ -51,16 +51,16 @@ const FLOOR_UPGRADES = [
   },
   {
     id:    "break_room",
-    label: "Staff Quarters",
+    label: "Potbelly Stove",
     art:   "assets/office/staff-quarters.png",
     icon:  "☕",
     cost:  80,
-    size:  [2, 1],
-    desc:  "Staff comfort boost. Reduces daily overhead by $2.",
+    size:  [1, 2],
+    desc:  "A warm staff corner reduces daily operating overhead by $2.",
   },
   {
     id:    "safe_deposit",
-    label: "Safe Deposit",
+    label: "Safe Deposit Cabinet",
     art:   "assets/office/safe-deposit.png",
     icon:  "🗄️",
     cost:  180,
@@ -69,11 +69,11 @@ const FLOOR_UPGRADES = [
   },
   {
     id:    "lobby",
-    label: "Grand Lobby",
+    label: "Leather Waiting Bench",
     art:   "assets/office/grand-lobby.png",
     icon:  "🏛️",
     cost:  500,
-    size:  [3, 2],
+    size:  [3, 1],
     desc:  "Impresses distinguished patrons. Standing floor raised to 25.",
   },
 ];
@@ -81,6 +81,17 @@ const FLOOR_UPGRADES = [
 // ── State ──────────────────────────────────────────────────────
 let floorGrid        = [];
 let selectedUpgradeId = null;   // id of upgrade chosen in shop, or null
+
+const SHOP_SYMBOLS = {
+  teller_window: "▥",
+  risk_desk: "✒",
+  vault_upgrade: "◆",
+  pr_office: "⌁",
+  atm: "$",
+  break_room: "♨",
+  safe_deposit: "▣",
+  lobby: "▰",
+};
 
 function initFloor() {
   floorGrid = Array(FLOOR_COLS * FLOOR_ROWS).fill(null);
@@ -234,17 +245,15 @@ function renderShop() {
     const bottomLine = owned
       ? `<div class="shop-item-owned">✓ Placed</div>`
       : `<div class="shop-item-cost">${fmt(upg.cost)}</div>`;
-    const artHtml = upg.art
-      ? `<img class="shop-item-art" src="${upg.art}" alt="${upg.label}">`
-      : `<div class="shop-item-icon">${upg.icon}</div>`;
+    const artHtml = `<div class="shop-item-icon western-shop-icon" aria-hidden="true">${SHOP_SYMBOLS[upg.id] || upg.icon}</div>`;
 
     return `
-      <div class="${cls}" onclick="selectUpgrade('${upg.id}')" title="${upg.desc}">
+      <button type="button" class="${cls}" onclick="selectUpgrade('${upg.id}')" title="${upg.desc}" aria-pressed="${selected}">
         ${artHtml}
         <div class="shop-item-name">${upg.label}</div>
         ${bottomLine}
         <div class="shop-item-size">${w}×${h}</div>
-      </div>`;
+      </button>`;
   }).join("");
 }
 

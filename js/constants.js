@@ -24,9 +24,17 @@ const DIFFICULTY = {
 };
 
 // ── Shared utilities ──────────────────────────────────────────
-const fmt     = n   => '$' + Math.round(n).toLocaleString();
+const fmt     = n   => `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const pick    = arr => arr[Math.floor(Math.random() * arr.length)];
 const randInt = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+
+function effectiveDayDuration(defaultSeconds) {
+  if (typeof location === "undefined") return defaultSeconds;
+  const requested = Number(new URLSearchParams(location.search).get("dayDuration"));
+  return Number.isFinite(requested) && requested >= 2 && requested <= 300
+    ? requested
+    : defaultSeconds;
+}
 
 // ── Calendar (game starts December 25, 1855) ──────────────────
 const _MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
