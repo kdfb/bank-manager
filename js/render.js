@@ -9,6 +9,12 @@ function timeAgo(ts) {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
+function setDecisionLayerVisible(show) {
+  document.getElementById("decisionLayer")?.classList.toggle("show", show);
+  document.body.classList.toggle("decision-open", show);
+  if (show) document.getElementById("guidanceCard")?.classList.remove("show");
+}
+
 function renderMenuSlots() {
   const container = document.getElementById("menuSlots");
   if (!container) return;
@@ -56,7 +62,9 @@ function renderStats() {
   const cashEl = document.getElementById("statCash");
   const loansEl = document.getElementById("statLoans");
   const depositsEl = document.getElementById("statDeposits");
+  const debtEl = document.getElementById("statDebt");
   const repEl = document.getElementById("statRep");
+  const subtitleEl = document.getElementById("bankSubtitle");
   if (!dayLabel) return;
 
   dayLabel.textContent     = gameDate(bank.day);
@@ -67,14 +75,38 @@ function renderStats() {
     bank.cash < 200 ? "var(--red)" : bank.cash < 800 ? "var(--yellow)" : "var(--green)";
   loansEl.textContent      = fmt(bank.loansOut);
   depositsEl.textContent   = fmt(bank.deposits);
+  debtEl.textContent       = fmt(bank.debt || 0);
+  if (subtitleEl) {
+    const location = BankMarket.locationProfile(bank);
+    const tier = BankMarket.PRESTIGE_TIERS[bank.prestigeLevel || 0];
+    subtitleEl.textContent = `${location.label} · ${tier.title}`;
+  }
 
   repEl.textContent = `${r} / 100`;
   repEl.style.color =
     r >= 50 ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
 
+  const features = BankOperations.featureAvailability(bank);
+  const strategyButton = document.getElementById("strategyBtn");
+  const buildButton = document.getElementById("buildModeBtn");
+  if (strategyButton) {
+    strategyButton.disabled = !features.regional;
+    strategyButton.textContent = features.regional ? "Regions" : "Regions 🔒";
+    strategyButton.title = features.regional ? "Open the regional strategy desk" : "Unlocks at Trusted Institution prestige";
+    strategyButton.setAttribute("aria-label", features.regional ? "Open regional strategy" : "Regional strategy locked until Trusted Institution prestige");
+  }
+  if (buildButton) {
+    buildButton.disabled = !features.building;
+    buildButton.textContent = features.building ? "Build" : "Build 🔒";
+    buildButton.title = features.building ? "Enter Build mode" : "Unlocks after serving three customers";
+    buildButton.setAttribute("aria-label", features.building ? "Enter build mode" : "Build mode locked until three customers are served");
+  }
+
   const fill = document.getElementById("repFill");
   fill.style.width      = `${r}%`;
   fill.style.background = r >= 50 ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
+  if (typeof refreshPlatformProgress === "function") refreshPlatformProgress(true);
+  if (typeof renderGuidance === "function") renderGuidance();
 }
 
 function renderDots() {
@@ -88,10 +120,10 @@ function renderDots() {
 }
 
 // End-of-day summary card — shows actual numbers already applied to bank state.
-function renderEndOfDay(loanIncome, depInt, overhead, dayDelta) {
+function renderEndOfDayLegacy(loanIncome, depInt, overhead, dayDelta) {
   const card       = document.getElementById("eventCard");
   decisionOpen = true;
-  document.getElementById("decisionLayer")?.classList.add("show");
+  setDecisionLayerVisible(true);
   const deltaColor = dayDelta >= 0 ? "var(--green)" : "var(--red)";
   const deltaSign  = dayDelta >= 0 ? "+" : "";
   card.innerHTML = `
@@ -119,6 +151,120 @@ function renderEndOfDay(loanIncome, depInt, overhead, dayDelta) {
       <button class="btn btn-purple" onclick="startNextDay()">Start ${gameDate(bank.day + 1)} →</button>
     </div>`;
   document.getElementById("dots").innerHTML = "";
+}
+
+function renderEndOfDay(report) {
+  const { loanIncome, depInt, rent, wages, defaults, debtPayment, dayDelta } = report;
+  const cashChange = Number.isFinite(report.cashChange) ? report.cashChange : 0;
+  const worldReport = report.world || { conditionsToday: [], expiredConditions: [], events: [] };
+  const segmentResults = Object.entries(bank.dayMetrics.segmentResults || {})
+    .filter(([, result]) => result.served || result.lost)
+    .map(([id, result]) => `${BankMarket.SEGMENTS[id]?.label || id}: ${result.served} served${result.lost ? `, ${result.lost} lost` : ""}`);
+  const loanMetrics = report.loanMetrics || {
+    due: loanIncome,
+    received: loanIncome,
+    interestIncome: bank.dayMetrics.interestIncome || 0,
+    missedPayments: bank.dayMetrics.loanPaymentsMissed || 0,
+    newDelinquencies: bank.dayMetrics.newDelinquencies || 0,
+    defaultCount: defaults > 0 ? 1 : 0,
+  };
+  const portfolio = report.portfolio || BankPortfolio.portfolioSummary(bank.loanBook, bank.day);
+  const card = document.getElementById("eventCard");
+  const nextDebt = BankEconomy.nextDebtPayment({ ...bank, day: bank.day + 1 });
+  const averageWait = bank.dayMetrics.customersServed
+    ? bank.dayMetrics.totalWaitSeconds / bank.dayMetrics.customersServed
+    : 0;
+  decisionOpen = true;
+  setDecisionLayerVisible(true);
+  const deltaColor = dayDelta >= 0 ? "var(--green)" : "var(--red)";
+  const deltaSign = dayDelta >= 0 ? "+" : "";
+  card.innerHTML = `
+    <div class="event-head">
+      <div class="event-icon">📊</div>
+      <div class="event-meta">
+        <div class="type">End of Day</div>
+        <div class="title">${gameDate(bank.day)} Report</div>
+      </div>
+    </div>
+    <div class="event-body eod-body">
+      <div class="eod-row"><span class="key">Loan payments received</span><span style="color:var(--green)">+${fmt(loanMetrics.received)} of ${fmt(loanMetrics.due)} due</span></div>
+      <div class="eod-row"><span class="key">Loan interest earned</span><span style="color:var(--green)">+${fmt(loanMetrics.interestIncome)}</span></div>
+      ${loanMetrics.missedPayments ? `<div class="eod-row"><span class="key">Missed loan payments</span><span style="color:var(--red)">${loanMetrics.missedPayments} (${loanMetrics.newDelinquencies} newly late)</span></div>` : ""}
+      <div class="eod-row"><span class="key">Fees earned</span><span style="color:var(--green)">+${fmt(bank.dayMetrics.fees)}</span></div>
+      ${bank.dayMetrics.eventIncome ? `<div class="eod-row"><span class="key">Event and underwriting income</span><span style="color:var(--green)">+${fmt(bank.dayMetrics.eventIncome)}</span></div>` : ""}
+      ${bank.dayMetrics.eventCosts ? `<div class="eod-row"><span class="key">Event and response costs</span><span style="color:var(--red)">-${fmt(bank.dayMetrics.eventCosts)}</span></div>` : ""}
+      ${bank.dayMetrics.expansionCosts ? `<div class="eod-row"><span class="key">Branch expansion costs</span><span style="color:var(--red)">-${fmt(bank.dayMetrics.expansionCosts)}</span></div>` : ""}
+      <div class="eod-row"><span class="key">Deposit interest</span><span style="color:var(--red)">-${fmt(depInt)}</span></div>
+      ${report.pricing ? `<div class="eod-row"><span class="key">Pricing posture</span><span>${BankCampaign.DEPOSIT_PRICING[report.pricing.depositPricing]?.label || "Market Rate"} · ${BankCampaign.FEE_PRICING[report.pricing.feePricing]?.label || "Standard Fees"}</span></div>` : ""}
+      <div class="eod-row"><span class="key">Rent & operations</span><span style="color:var(--red)">-${fmt(rent)}</span></div>
+      <div class="eod-row"><span class="key">Staff wages</span><span style="color:var(--red)">-${fmt(wages)}</span></div>
+      ${defaults > 0 ? `<div class="eod-row"><span class="key">Loan defaults</span><span style="color:var(--red)">-${fmt(defaults)}</span></div>` : ""}
+      ${debtPayment > 0 ? `<div class="eod-row"><span class="key">Debt principal paid</span><span style="color:var(--yellow)">-${fmt(debtPayment)}</span></div>` : ""}
+      <div class="eod-row report-total">
+        <span class="key">Net change</span>
+        <span style="color:${deltaColor}">${deltaSign}${fmt(dayDelta)}</span>
+      </div>
+      <div class="eod-row"><span class="key">Cash movement</span><span style="color:${cashChange >= 0 ? "var(--green)" : "var(--red)"}">${cashChange >= 0 ? "+" : ""}${fmt(cashChange)}</span></div>
+      <div class="eod-row"><span class="key">Customers served</span><span>${bank.dayMetrics.customersServed} (${bank.dayMetrics.staffServed} delegated)</span></div>
+      ${bank.dayMetrics.worldEventsResolved ? `<div class="eod-row"><span class="key">Strategic decisions</span><span>${bank.dayMetrics.worldEventsResolved}</span></div>` : ""}
+      ${segmentResults.length ? `<div class="eod-row"><span class="key">Customer segments</span><span>${segmentResults.join(" · ")}</span></div>` : ""}
+      <div class="eod-row"><span class="key">Customers lost</span><span style="color:${bank.dayMetrics.customersLost ? "var(--red)" : "inherit"}">${bank.dayMetrics.customersLost}</span></div>
+      <div class="eod-row"><span class="key">Average wait</span><span>${Math.round(averageWait)}s · peak queue ${bank.dayMetrics.maxQueue}</span></div>
+      <div class="eod-row"><span class="key">Loan portfolio</span><span>${fmt(portfolio.balance)} outstanding · ${fmt(portfolio.expectedLoss)} expected loss</span></div>
+      <div class="eod-row"><span class="key">Next expected loan inflow</span><span>${fmt(portfolio.expectedNextDay)} from ${portfolio.count} active</span></div>
+      ${worldReport.events.map(entry => `<div class="eod-row"><span class="key">${entry.eventTitle}</span><span>${entry.choiceLabel}</span></div>`).join("")}
+      ${worldReport.conditionsToday.length ? `<div class="eod-row"><span class="key">Conditions affecting today</span><span>${worldReport.conditionsToday.map(condition => `${condition.label} (${condition.remainingDays}d)`).join(" · ")}</span></div>` : ""}
+      ${worldReport.expiredConditions.length ? `<div class="eod-row"><span class="key">Conditions ended</span><span>${worldReport.expiredConditions.join(" · ")}</span></div>` : ""}
+      ${(report.prestigePromotions || []).map(tier => `<div class="eod-row"><span class="key">Prestige advanced</span><span>${tier.title} · ${tier.unlock}</span></div>`).join("")}
+      ${report.network?.results?.length ? `<div class="eod-row"><span class="key">Regional branch profit</span><span style="color:${report.network.profit >= 0 ? "var(--green)" : "var(--red)"}">${report.network.profit >= 0 ? "+" : ""}${fmt(report.network.profit)} from ${report.network.results.length} branch${report.network.results.length === 1 ? "" : "es"}</span></div>` : ""}
+      ${(report.network?.competition?.actions || []).map(action => `<div class="eod-row"><span class="key">${BankCampaign.RIVAL_DEFINITIONS[action.rivalId].name}</span><span>${action.title} in ${BankCampaign.REGIONS[action.regionId].label}${action.playerLoss ? ` · -${action.playerLoss.toFixed(2)}% local share` : ""}</span></div>`).join("")}
+      ${report.campaignProgress ? `<div class="eod-row"><span class="key">Campaign objective</span><span>${report.campaignProgress.complete ? "Legacy secured" : report.campaignProgress.current.title}</span></div>` : ""}
+      <div class="eod-row"><span class="key">Market share</span><span>${bank.marketShare.toFixed(1)}% vs ${bank.rivalShare.toFixed(1)}%</span></div>
+      <div class="eod-row"><span class="key">Upcoming debt payment</span><span>${fmt(nextDebt.amount)} in ${nextDebt.dueInDays} day(s)</span></div>
+    </div>
+    <div class="btn-row one-col">
+      <button class="btn btn-purple" onclick="startNextDay()">Start ${gameDate(bank.day + 1)} →</button>
+    </div>`;
+  document.getElementById("dots").innerHTML = "";
+}
+
+function showLegacyConclusion() {
+  const summary = BankCampaign.legacySummary(bank, netWorth());
+  if (!summary) return false;
+  pauseTimers();
+  decisionOpen = true;
+  const body = document.getElementById("legacyBody");
+  body.innerHTML = `
+    <div class="legacy-heading">
+      <span>Legacy established on day ${summary.victoryDay}</span>
+      <h3>${summary.title}</h3>
+      <p id="legacyEpilogue">${summary.epilogue}</p>
+    </div>
+    <div class="legacy-metrics">
+      <div><span>Branches</span><strong>${summary.metrics.branches}</strong></div>
+      <div><span>Network share</span><strong>${summary.metrics.networkShare.toFixed(1)}%</strong></div>
+      <div><span>Net capital</span><strong>${fmt(summary.metrics.netCapital)}</strong></div>
+      <div><span>Customers served</span><strong>${summary.metrics.customersServed.toLocaleString()}</strong></div>
+      <div><span>World decisions</span><strong>${summary.metrics.strategicDecisions}</strong></div>
+      <div><span>Operating style</span><strong>${summary.dominantPolicy}</strong></div>
+    </div>
+    <div class="legacy-story">
+      <article><span>Strongest institution</span><strong>${summary.strongestBranch.name} · ${summary.strongestBranch.region}</strong><p>${summary.strongestBranch.marketShare.toFixed(1)}% local share and ${fmt(summary.strongestBranch.cumulativeProfit)} recorded branch earnings.</p></article>
+      <article><span>The contest continues</span><strong>${summary.leadingRival.name}</strong><p>Your leading rival still operates in ${summary.leadingRival.regions} region${summary.leadingRival.regions === 1 ? "" : "s"}. Open-ended play continues with the full economy and rival simulation active.</p></article>
+    </div>
+    <div class="legacy-branches">
+      ${summary.branches.map(branch => `<div class="legacy-branch"><strong>${branch.name}</strong><span>${branch.region} · ${branch.focus} · ${branch.policy} · ${branch.depositPricing} · ${branch.feePricing}</span><strong>${branch.marketShare.toFixed(1)}%</strong></div>`).join("")}
+    </div>`;
+  showAppDialog("legacyOverlay", "#legacyContinueBtn");
+  BankAudio.play("victory");
+  return true;
+}
+
+function closeLegacyConclusion() {
+  hideAppDialog("legacyOverlay", "#decisionLayer button");
+  bank.campaign.victoryAcknowledged = true;
+  saveGame();
+  BankAudio.play("uiClose");
 }
 
 function renderEvent() {
@@ -209,11 +355,11 @@ function openEventInfo() {
       <p>${ev.eventType}: <strong>${ev.title}</strong></p>
       <div class="event-info-list">${details}</div>
     </div>`;
-  document.getElementById("eventInfoOverlay")?.classList.add("show");
+  showAppDialog("eventInfoOverlay", ".menu-close-btn");
 }
 
 function closeEventInfo() {
-  document.getElementById("eventInfoOverlay")?.classList.remove("show");
+  hideAppDialog("eventInfoOverlay", "#decisionLayer button");
 }
 
 function showOverlay(kind, icon, title, body, statsHtml) {
@@ -224,7 +370,8 @@ function showOverlay(kind, icon, title, body, statsHtml) {
   document.getElementById("overlayTitle").className   = `overlay-title ${kind}`;
   document.getElementById("overlayBody").textContent  = body;
   document.getElementById("overlayStats").innerHTML   = statsHtml;
-  document.getElementById("overlay").classList.add("show");
+  showAppDialog("overlay", "button");
+  BankAudio.play(kind === "win" ? "victory" : "failure");
 }
 
 function addLog(msg, kind) {

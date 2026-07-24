@@ -2,31 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#3a2418">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
   <title>Bank Manager</title>
+  <link rel="icon" type="image/png" href="assets/release/app-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <main class="game-shell">
-    <canvas id="gameCanvas" aria-label="Bank branch game area"></canvas>
+    <canvas id="gameCanvas" tabindex="0" aria-label="Bank branch game area" aria-describedby="controlHints"></canvas>
 
     <section class="hud desk-hud" aria-label="Bank status desk">
       <div class="desk-service-area">
         <div class="desk-header">
           <div>
-            <div class="hud-title">First National Bank</div>
-            <div class="hud-date">Service Desk</div>
+            <div class="hud-title">Frontier Trust & Loan</div>
+            <div class="hud-date" id="bankSubtitle">Silver Creek · Local Banker</div>
           </div>
           <div class="hud-actions">
+            <button class="icon-btn primary-action" id="operationsBtn" aria-label="Open operations">Manage</button>
+            <button class="icon-btn" id="strategyBtn" aria-label="Open regional strategy">Regions</button>
+            <button class="icon-btn" id="helpBtn" aria-label="Open game guide">Guide</button>
+            <button class="icon-btn" id="buildModeBtn" aria-label="Enter build mode">Build</button>
             <button class="icon-btn" id="ledgerToggleBtn" aria-label="Toggle ledger">Ledger</button>
-            <button class="icon-btn" id="menuBtn" aria-label="Open menu">Menu</button>
-          </div>
-        </div>
-
-        <div class="desk-event-layer" id="decisionLayer">
-          <div class="decision-card">
-            <div id="eventCard"></div>
-            <div class="dots" id="dots"></div>
+            <button class="icon-btn" id="menuBtn" aria-label="Open menu">Save</button>
           </div>
         </div>
       </div>
@@ -36,14 +37,48 @@
         <div class="desk-meter"><span>Day Clock</span><strong id="dayTime">0:00</strong><div class="hud-timer"><div class="hud-timer-fill" id="dayTimerFill"></div></div></div>
         <div class="desk-meter"><span>Standing</span><strong id="statRep">60 / 100</strong><div class="rep-track"><div class="rep-fill" id="repFill"></div></div></div>
         <div><span>Cash</span><strong id="statCash">$5,000</strong></div>
-        <div><span>Assets</span><strong id="statLoans">$0</strong></div>
-        <div><span>Liabilities</span><strong id="statDeposits">$3,000</strong></div>
+        <div><span>Loans</span><strong id="statLoans">$0</strong></div>
+        <div><span>Deposits</span><strong id="statDeposits">$3,000</strong></div>
+        <div><span>Debt</span><strong id="statDebt">$1,000</strong></div>
         <div class="net"><span>Net Capital</span><strong id="netWorth">$2,000</strong></div>
       </aside>
     </section>
 
-    <div class="mode-banner" id="modeBanner">Walk to a waiting customer and press E</div>
+    <aside class="desk-event-layer" id="decisionLayer" aria-label="Active customer decision">
+      <div class="decision-card">
+        <div id="eventCard"></div>
+        <div class="dots" id="dots"></div>
+      </div>
+    </aside>
+
+    <div class="mode-banner" id="modeBanner">Goal 1 of 5 · Serve your first customer · 0/1</div>
+    <aside class="branch-status" aria-label="Live branch operations">
+      <div>
+        <span>Queue</span>
+        <strong id="queueCount">0 waiting</strong>
+      </div>
+      <div class="queue-track"><div class="queue-fill" id="queueFill"></div></div>
+      <div class="queue-detail">
+        <span id="queueWait">No wait</span>
+        <span id="serviceCapacity">You are serving</span>
+      </div>
+    </aside>
     <div class="interaction-prompt" id="interactionPrompt">Press E to serve</div>
+    <aside class="guidance-card" id="guidanceCard" aria-live="polite"></aside>
+    <div class="control-hints" id="controlHints" aria-label="Controls">
+      <span class="keyboard-control"><kbd>WASD</kbd> Move</span>
+      <span class="keyboard-control"><kbd>E</kbd> Interact</span>
+      <span class="keyboard-control"><kbd>B</kbd> Build</span>
+      <span class="gamepad-control"><kbd>LS</kbd> Move</span>
+      <span class="gamepad-control"><kbd>A</kbd> Interact</span>
+      <span class="gamepad-control"><kbd>X</kbd> Build</span>
+    </div>
+    <div class="controller-status" id="controllerStatus" role="status" aria-live="polite"></div>
+    <aside class="achievement-toast" id="achievementToast" role="status" aria-live="polite" aria-atomic="true">
+      <span>Achievement unlocked</span>
+      <strong id="achievementToastTitle"></strong>
+      <p id="achievementToastBody"></p>
+    </aside>
 
     <section class="build-panel" id="buildPanel" aria-label="Build mode">
       <div class="build-head">
@@ -82,14 +117,27 @@
     </div>
   </main>
 
-  <div class="overlay" id="menuOverlay">
+  <div class="overlay" id="menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
     <div class="overlay-box menu-box">
       <div class="menu-header">
-        <span class="menu-title">Menu</span>
-        <button class="menu-close-btn" onclick="closeMenu()">×</button>
+        <span class="menu-title" id="menuTitle">Menu</span>
+        <button class="menu-close-btn" onclick="closeMenu()" aria-label="Close menu">×</button>
       </div>
       <div class="menu-section-label">Save Slots</div>
       <div id="menuSlots"></div>
+      <div class="menu-divider"></div>
+      <div class="menu-section-label">Save Portability</div>
+      <div id="savePortabilityPanel" class="save-portability-panel"></div>
+      <input id="saveArchiveInput" type="file" accept="application/json,.json" hidden onchange="handleSaveArchiveFile(this)">
+      <div class="menu-divider"></div>
+      <div class="menu-section-label">Audio, Accessibility & Guidance</div>
+      <div id="settingsPanel" class="settings-panel"></div>
+      <div class="menu-divider"></div>
+      <div class="menu-section-label">Achievements</div>
+      <div id="achievementsPanel" class="achievements-panel"></div>
+      <div class="menu-divider"></div>
+      <div class="menu-section-label">Playtest Balance Lab</div>
+      <div id="telemetryPanel" class="telemetry-panel"></div>
       <div class="menu-divider"></div>
       <div id="restartArea">
         <button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">Restart New Game</button>
@@ -97,7 +145,59 @@
     </div>
   </div>
 
-  <div class="overlay" id="overlay">
+  <div class="overlay" id="guideOverlay" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="overlay-box guide-box">
+      <div class="menu-header">
+        <div><div class="panel-kicker">Frontier Trust handbook</div><span class="menu-title" id="guideTitle">Game Guide</span></div>
+        <button class="menu-close-btn" id="guideCloseBtn" onclick="closeGuide()" aria-label="Close game guide">&times;</button>
+      </div>
+      <div id="guideBody"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="operationsOverlay" role="dialog" aria-modal="true" aria-labelledby="operationsTitle">
+    <div class="overlay-box operations-box">
+      <div class="menu-header">
+        <div>
+          <div class="panel-kicker">Management overlay</div>
+          <span class="menu-title" id="operationsTitle">Operations</span>
+        </div>
+        <button class="menu-close-btn" onclick="closeOperations()" aria-label="Close operations">×</button>
+      </div>
+      <div id="operationsBody"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="strategyOverlay" role="dialog" aria-modal="true" aria-labelledby="strategyTitle">
+    <div class="overlay-box strategy-box">
+      <div class="menu-header">
+        <div>
+          <div class="panel-kicker">Regional command desk</div>
+          <span class="menu-title" id="strategyTitle">Branch Network</span>
+        </div>
+        <button class="menu-close-btn" onclick="closeStrategy()" aria-label="Close regional strategy">&times;</button>
+      </div>
+      <div id="strategyBody"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="legacyOverlay" role="dialog" aria-modal="true" aria-labelledby="legacyTitle" aria-describedby="legacyEpilogue">
+    <div class="overlay-box legacy-box">
+      <div class="legacy-banner">
+        <div>
+          <div class="panel-kicker">Campaign conclusion</div>
+          <h2 id="legacyTitle">Frontier Banking Legacy</h2>
+        </div>
+        <div class="legacy-seal" aria-hidden="true">FT</div>
+      </div>
+      <div id="legacyBody"></div>
+      <div class="legacy-actions">
+        <button class="btn btn-green" id="legacyContinueBtn" onclick="closeLegacyConclusion()">Continue in open-ended mode</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
     <div class="overlay-box">
       <div class="overlay-icon" id="overlayIcon"></div>
       <div class="overlay-title" id="overlayTitle"></div>
@@ -109,24 +209,39 @@
     </div>
   </div>
 
-  <div class="overlay" id="eventInfoOverlay">
+  <div class="overlay" id="eventInfoOverlay" role="dialog" aria-modal="true" aria-labelledby="clientFileTitle">
     <div class="overlay-box event-info-box">
       <div class="menu-header">
-        <span class="menu-title">Client File</span>
-        <button class="menu-close-btn" onclick="closeEventInfo()">×</button>
+        <span class="menu-title" id="clientFileTitle">Client File</span>
+        <button class="menu-close-btn" onclick="closeEventInfo()" aria-label="Close client file">×</button>
       </div>
       <div id="eventInfoBody"></div>
     </div>
   </div>
 
   <script src="js/constants.js"></script>
+  <script src="js/platform.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/portfolio.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/market.js"></script>
+  <script src="js/campaign.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/operations.js"></script>
+  <script src="js/guidance.js"></script>
+  <script src="js/telemetry.js"></script>
   <script src="js/bank.js"></script>
   <script src="js/events.js"></script>
   <script src="js/render.js"></script>
   <script src="js/timers.js"></script>
   <script src="js/floor.js"></script>
   <script src="js/branch.js"></script>
+  <script src="js/management.js"></script>
+  <script src="js/strategy.js"></script>
+  <script src="js/help.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

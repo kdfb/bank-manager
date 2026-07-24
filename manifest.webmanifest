@@ -1,0 +1,25 @@
+{
+  "name": "Bank Manager",
+  "short_name": "Bank Manager",
+  "description": "Build a frontier bank from a hands-on branch into a competitive regional institution.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#101820",
+  "theme_color": "#3a2418",
+  "icons": [
+    {
+      "src": "assets/release/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/release/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
