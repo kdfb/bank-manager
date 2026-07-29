@@ -42,7 +42,28 @@ function buildDay() {
   debugSegmentInjected = false;
 }
 
+function makeOpeningDayEvent(index) {
+  const caseNumber = Math.max(0, Math.min(4, index));
+  const blueprints = [
+    { segment: "households", service: "account", name: "Carmen Reyes", organization: "Reyes Family Fund", purpose: "a household account", risk: "low" },
+    { segment: "ranchers", service: "loan", name: "Elena Ivanova", organization: "Green Valley Farm", purpose: "winter feed before the first snow", risk: "medium" },
+    { segment: "households", service: "withdrawal", name: "Hiro Tanaka", organization: "The Tanaka Household", purpose: "winter provisions", risk: "low" },
+    { segment: "miners", service: "loan", name: "Liam Nkosi", organization: "Copper Ridge Crew", purpose: "safer equipment for a promising claim", risk: "high" },
+    { segment: "merchants", service: "deposit", name: "Grace Liu", organization: "Blue Peak Outfitters", purpose: "the week's shop takings", risk: "low" },
+  ];
+  const blueprint = blueprints[caseNumber];
+  const profile = BankMarket.customerProfileForSegment(blueprint.segment, blueprint.service, () => 0.35);
+  Object.assign(profile, blueprint);
+  if (blueprint.service === "loan") return makeLoanEvent(profile);
+  if (blueprint.service === "deposit") return makeDepositEvent(profile);
+  if (blueprint.service === "withdrawal") return makeWithdrawalEvent(profile);
+  return makeAccountEvent(profile);
+}
+
 function makeCustomerEvent() {
+  if (bank.day === 1 && queue.length < BankOperations.dailyAppointmentTarget(bank)) {
+    return makeOpeningDayEvent(queue.length);
+  }
   if (typeof location !== "undefined" && !debugWorldEventInjected) {
     const requestedEvent = new URLSearchParams(location.search).get("debugEvent");
     if (BankWorld.worldEventDefinition(requestedEvent)) {
@@ -65,7 +86,7 @@ function makeCustomerEvent() {
   }
   if (BankWorld.pendingFollowUps(bank).some(pending => pending.dueDay <= bank.day)) return makeWorldEvent();
   const roll = Math.random();
-  if (roll < 0.08) return makeRandomEvent();
+  if (bank.day >= 6 && roll < 0.05) return makeRandomEvent();
   const profile = BankMarket.customerProfile(bank, Math.random);
   if (profile.service === "loan") return makeLoanEvent(profile);
   if (profile.service === "deposit") return makeDepositEvent(profile);

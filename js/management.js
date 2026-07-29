@@ -311,10 +311,10 @@ function renderOperations() {
           <div class="candidate-grid">${candidates.map(renderCandidate).join("")}</div>
         </section>` : ""}` : `
         <section class="operations-card operations-wide discovery-card">
-          <div><div class="panel-kicker">Next management system</div><h3>Staffing unlocks after three customers</h3></div>
-          <p>For now, learn the teller loop. After three completed cases, the hiring board and Build mode open together so every new tool has an immediate purpose.</p>
-          <div class="discovery-progress"><i style="width:${Math.min(100, (bank.stats.customersServed || 0) / 3 * 100)}%"></i></div>
-          <strong>${bank.stats.customersServed || 0} / 3 customers served</strong>
+          <div><div class="panel-kicker">Next management system</div><h3>Staffing unlocks after ten customers</h3></div>
+          <p>For now, learn the daily rhythm. After ten appointments, the hiring board and Build mode open together so every new tool has an immediate purpose.</p>
+          <div class="discovery-progress"><i style="width:${Math.min(100, (bank.stats.customersServed || 0) / 10 * 100)}%"></i></div>
+          <strong>${bank.stats.customersServed || 0} / 10 customers served</strong>
         </section>`}
 
       ${features.world ? `<section class="operations-card operations-wide world-card">

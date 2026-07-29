@@ -24,6 +24,7 @@ let pinchPointers = new Map();
 let pinchStartDistance = 0;
 let pinchStartZoom = 1;
 let suppressCanvasClickUntil = 0;
+let dayFinishQueued = false;
 
 const WESTERN_CHARACTER_ATLAS = "assets/western/characters-atlas.png";
 const WESTERN_FURNITURE_ATLAS = "assets/western/furniture-atlas.png";
@@ -381,14 +382,15 @@ function maybeSpawnCustomer() {
   if (!branchState.openForCustomers) return;
   if (typeof location !== "undefined" && new URLSearchParams(location.search).get("debugNoCustomers") === "1") return;
   const activeCustomers = branchState.customers.filter(c => c.state !== "leaving").length;
-  if (activeCustomers >= 5) return;
+  const appointmentTarget = BankOperations.dailyAppointmentTarget(bank);
+  if (branchState.spawnedCount >= appointmentTarget || activeCustomers >= 2) return;
   if (branchState.spawnedCount < qIdx) branchState.spawnedCount = qIdx;
   if (performance.now() < branchState.nextSpawnAt) return;
   if (branchState.spawnedCount >= queue.length) queue.push(makeCustomerEvent());
   const idx = branchState.spawnedCount;
   branchState.spawnedCount++;
   branchState.nextSpawnAt = performance.now()
-    + randInt(1800, 3400)
+    + randInt(2800, 4500)
       * BankWorld.modifiers(bank).spawnInterval
       / BankCampaign.activePricingEffects(bank).customerDemand
       / BankMarket.locationProfile(bank).growth;
@@ -466,7 +468,7 @@ function abandonCustomer(customer) {
   advanceResolvedQueue();
   renderStats();
   saveGame();
-  checkLose();
+  if (!checkLose()) maybeFinishAppointmentDay();
 }
 
 function tellerStation() {
@@ -936,7 +938,7 @@ function toggleBuildMode() { setBuildMode(branchState.mode !== "build"); }
 
 function setBuildMode(on) {
   if (on && !BankOperations.featureAvailability(bank).building) {
-    addLog("Build mode unlocks after you serve three customers.", "neutral");
+    addLog("Build mode unlocks after you learn the first ten customers.", "neutral");
     BankAudio.play("warning");
     return false;
   }
@@ -945,6 +947,7 @@ function setBuildMode(on) {
   if (on) {
     setLedgerVisible(false);
     branchState.tellerLocked = false;
+    document.body.classList.remove("at-teller");
     ensureControllerBuildCursor();
   }
   if (!on) {
@@ -1039,15 +1042,8 @@ function updateModeBanner() {
     el.textContent = sellMode ? "Sell mode · choose a furnishing to remove" : "Build mode · choose an item, then place it on an open floor tile";
   } else {
     const objective = BankOperations.currentObjective(bank, netWorth());
-    if (objective.complete && typeof BankCampaign !== "undefined") {
-      const campaign = BankCampaign.campaignStatus(bank, netWorth());
-      el.textContent = campaign.complete
-        ? "Campaign complete - Frontier banking legacy secured"
-        : `Campaign ${campaign.step} of ${campaign.total} - ${campaign.current.title}`;
-      return;
-    }
     el.textContent = objective.complete
-      ? `Branch milestone complete · ${objective.title}`
+      ? "Foundation complete · Keep serving Silver Creek"
       : `Goal ${objective.step} of ${objective.total} · ${objective.title} · ${objective.progress}`;
   }
 }
@@ -1062,9 +1058,11 @@ function updateInteractionPrompt() {
   const action = typeof BankControls !== "undefined" && BankControls.usesGamepad()
     ? "Press A"
     : touchLayout ? "Tap Serve" : "Press E";
+  const touchButton = document.getElementById("touchActionBtn");
   if (branchState.tellerLocked && ready) el.textContent = `${action} · Review customer`;
   else if (branchState.tellerLocked) el.textContent = "Wicket open · waiting for a customer";
   else if (nearWicket) el.textContent = `${action} · Open teller wicket`;
+  if (touchButton) touchButton.textContent = branchState.tellerLocked ? (ready ? "Review" : "Leave counter") : "Open counter";
 }
 
 function renderBranchStatus(force = false) {
@@ -1078,12 +1076,12 @@ function renderBranchStatus(force = false) {
   const fill = document.getElementById("queueFill");
   if (!count || !wait || !capacity || !fill) return;
 
-  const customerLabel = health.count === 1 ? "1 customer" : `${health.count} customers`;
-  const decisionLabel = health.narratives === 1 ? "1 decision" : `${health.narratives} decisions`;
-  count.textContent = health.narratives
-    ? `${customerLabel} · ${decisionLabel}`
-    : health.count === 1 ? "1 waiting" : `${health.count} waiting`;
-  wait.textContent = health.count ? `Longest ${Math.ceil(health.longestWait)}s` : "No wait";
+  const target = BankOperations.dailyAppointmentTarget(bank);
+  const completed = Math.min(target, qIdx);
+  count.textContent = `Today ${completed} / ${target}`;
+  wait.textContent = health.count
+    ? `${health.count} waiting${health.atRisk ? " · needs attention" : ""}`
+    : completed >= target ? "Appointments complete" : "Next customer soon";
   const staffing = BankOperations.staffingSummary(bank);
   const serviceModifier = BankWorld.modifiers(bank).serviceInterval;
   const serviceParts = [];
@@ -1093,10 +1091,8 @@ function renderBranchStatus(force = false) {
     ? serviceParts.join(" · ")
     : bank.staff?.length ? "Staff need a matching workstation"
       : branchState?.tellerLocked ? "Your wicket is open" : "Wicket closed";
-  fill.style.width = `${Math.max(0, Math.min(100, health.lowestPatience * 100))}%`;
-  fill.style.background = health.lowestPatience > 0.55
-    ? "var(--green)"
-    : health.lowestPatience > 0.25 ? "var(--yellow)" : "var(--red)";
+  fill.style.width = `${Math.round(completed / target * 100)}%`;
+  fill.style.background = completed >= target ? "var(--yellow)" : "var(--green)";
   updateModeBanner();
 }
 
@@ -1115,8 +1111,10 @@ function toggleTellerLock(force) {
   const next = typeof force === "boolean" ? force : !branchState.tellerLocked;
   if (next && !isNearTellerWicket()) return false;
   branchState.tellerLocked = next;
+  document.body.classList.toggle("at-teller", next);
   if (next) keepPlayerAtTeller();
   updateModeBanner();
+  updateInteractionPrompt();
   return true;
 }
 
@@ -1163,6 +1161,7 @@ function resolveCustomer(customerId, choice) {
   renderStats();
   saveGame();
   if (checkLose()) { stopTimers(); return; }
+  maybeFinishAppointmentDay();
 }
 
 function autoResolveCustomer(customer, silent = false, staffMember = null, forcedChoice = null) {
@@ -1177,6 +1176,7 @@ function autoResolveCustomer(customer, silent = false, staffMember = null, force
   advanceResolvedQueue();
   renderStats();
   if (checkLose()) { stopTimers(); return false; }
+  maybeFinishAppointmentDay();
   return true;
 }
 
@@ -1218,6 +1218,7 @@ function branchAutoResolve(silent = false) {
   advanceResolvedQueue();
   renderStats();
   if (checkLose()) { stopTimers(); return false; }
+  maybeFinishAppointmentDay();
   return true;
 }
 
@@ -1228,7 +1229,11 @@ function startBranchDay() {
   branchState.nextStaffServiceAt = performance.now() + 3200;
   branchState.activeDecisionCustomerId = null;
   branchState.openForCustomers = true;
+  branchState.tellerLocked = true;
+  dayFinishQueued = false;
   decisionOpen = false;
+  keepPlayerAtTeller();
+  document.body.classList.add("at-teller");
   setDecisionLayerVisible(false);
   updateModeBanner();
   renderBranchStatus(true);
@@ -1236,6 +1241,19 @@ function startBranchDay() {
 
 function advanceResolvedQueue() {
   while (queue[qIdx]?.resolved) qIdx++;
+}
+
+function maybeFinishAppointmentDay() {
+  if (dayFinishQueued || bank.phase !== "operating") return false;
+  const target = BankOperations.dailyAppointmentTarget(bank);
+  const remaining = branchState.customers.some(customer => customer.state !== "leaving");
+  if (branchState.spawnedCount < target || qIdx < target || remaining) return false;
+  dayFinishQueued = true;
+  branchState.openForCustomers = false;
+  setTimeout(() => {
+    if (bank.phase === "operating" && !decisionOpen) endOfDay();
+  }, 220);
+  return true;
 }
 
 function serializeBranch() {
