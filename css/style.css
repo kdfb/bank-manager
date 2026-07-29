@@ -550,6 +550,28 @@ button {
 .operations-card h3 { margin: 6px 0; font-family: Georgia, "Times New Roman", serif; font-size: 20px; }
 .operations-card h4 { margin: 4px 0; font-family: Georgia, "Times New Roman", serif; font-size: 17px; }
 .operations-card p { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+.focused-operations { display: grid; gap: 12px; }
+.focused-upgrade-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.focused-upgrade-card { min-height: 126px; padding: 12px; border: 1px solid rgba(207,165,91,.55); border-radius: 9px; background: rgba(18,30,27,.72); color: var(--text); text-align: left; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto; gap: 5px 9px; align-items: start; }
+.focused-upgrade-card:hover:not(:disabled) { border-color: var(--yellow); transform: translateY(-1px); }
+.focused-upgrade-card:disabled { opacity: .58; cursor: default; }
+.focused-upgrade-card strong { align-self: center; font-family: Georgia, "Times New Roman", serif; font-size: 15px; }
+.focused-upgrade-card > span:not(.focused-upgrade-icon) { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.focused-upgrade-card em { grid-column: 1 / -1; color: var(--yellow); font-style: normal; font-weight: 800; }
+.focused-upgrade-icon { width: 28px; height: 28px; border-radius: 7px; background: rgba(207,165,91,.16); display: grid; place-items: center; color: var(--yellow); font-size: 17px; }
+.day-reward-card { margin: 10px 12px; padding: 13px; border: 1px solid rgba(114,155,91,.7); border-radius: 9px; background: rgba(224,237,204,.66); color: #37291d; }
+.day-reward-card h3 { margin: 4px 0 5px; font: 700 18px/1.2 Georgia, "Times New Roman", serif; }
+.day-reward-card p { margin: 0 0 10px; color: #5d4936; font-size: 12px; line-height: 1.45; }
+.day-reward-card .panel-kicker { color: #4d6d3e; }
+.day-reward-card .focused-upgrade-grid { grid-template-columns: 1fr 1fr; }
+.day-reward-card .focused-upgrade-card { min-height: 116px; background: rgba(45,61,47,.92); }
+@media (max-width: 620px) {
+  .focused-upgrade-grid,
+  .day-reward-card .focused-upgrade-grid { grid-template-columns: 1fr; }
+  .focused-upgrade-card { min-height: 104px; }
+  .day-reward-card { margin-inline: 9px; }
+}
 .operations-wide { grid-column: 1 / -1; }
 .operations-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .objective-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; }

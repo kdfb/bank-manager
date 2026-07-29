@@ -6,30 +6,30 @@ const FLOOR_ROWS = 6;
 const FLOOR_UPGRADES = [
   {
     id:    "teller_window",
-    label: "Brass Teller Cage",
+    label: "Express Counter",
     art:   "assets/office/teller-window.png",
     icon:  "🪟",
-    cost:  150,
+    cost:  250,
     size:  [1, 1],
-    desc:  "Adds a second public-counter workstation so another teller can process the queue.",
+    desc:  "Mara handles routine appointments 30% faster.",
   },
   {
     id:    "risk_desk",
-    label: "Loan Officer's Desk",
+    label: "Loan Review Desk",
     art:   "assets/office/risk-desk.png",
     icon:  "🖥️",
-    cost:  250,
+    cost:  300,
     size:  [2, 2],
-    desc:  "Adds a loan workstation where an assigned officer can process credit applications.",
+    desc:  "Careful underwriting reduces the risk of new loans by 25%.",
   },
   {
     id:    "vault_upgrade",
-    label: "Reinforced Iron Safe",
+    label: "Reinforced Vault",
     art:   "assets/office/vault-upgrade.png",
     icon:  "🔒",
-    cost:  400,
+    cost:  350,
     size:  [2, 2],
-    desc:  "Robbery losses capped at $20 instead of $80.",
+    desc:  "Robbery losses are cut by 75%, and cash shortages hurt standing less.",
   },
   {
     id:    "pr_office",
@@ -69,14 +69,17 @@ const FLOOR_UPGRADES = [
   },
   {
     id:    "lobby",
-    label: "Leather Waiting Bench",
+    label: "Community Waiting Room",
     art:   "assets/office/grand-lobby.png",
     icon:  "🏛️",
-    cost:  500,
+    cost:  300,
     size:  [3, 1],
-    desc:  "Impresses distinguished patrons. Standing floor raised to 25.",
+    desc:  "Customers wait longer, and returning neighbors earn +1 extra standing.",
   },
 ];
+
+const FOCUSED_UPGRADE_IDS = Object.freeze(["teller_window", "risk_desk", "vault_upgrade", "lobby"]);
+const FOCUSED_UPGRADES = FLOOR_UPGRADES.filter(upgrade => FOCUSED_UPGRADE_IDS.includes(upgrade.id));
 
 // ── State ──────────────────────────────────────────────────────
 let floorGrid        = [];
@@ -231,7 +234,7 @@ function renderShop() {
   const container = document.getElementById("shopGrid");
   if (!container) return;
 
-  container.innerHTML = FLOOR_UPGRADES.map(upg => {
+  container.innerHTML = FOCUSED_UPGRADES.map(upg => {
     const affordable = bank.cash >= upg.cost;
     const owned      = bank.upgrades?.[upg.id] > 0;
     const selected   = selectedUpgradeId === upg.id;

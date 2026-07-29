@@ -29,8 +29,12 @@ function hireStaff(candidateId) {
   }));
   addLog(`${candidate.name} hired as ${candidate.role}. Daily payroll increased by ${fmt(candidate.dailyWage)}.`, "good");
   BankAudio.play("purchase");
+  if (bank.phase === "operating" && branchState && BankOperations.activeStaff(bank, "counter").length) {
+    branchState.tellerLocked = false;
+    document.body.classList.remove("at-teller");
+  }
   renderStats();
-  renderOperations();
+  if (document.getElementById("operationsOverlay")?.classList.contains("show")) renderOperations();
   renderBranchStatus(true);
   saveGame();
 }
@@ -224,9 +228,112 @@ function renderSegmentCard(segment) {
     </article>`;
 }
 
+function focusedUpgradeCards(compact = false) {
+  return `<div class="focused-upgrade-grid ${compact ? "compact" : ""}">
+    ${FOCUSED_UPGRADES.map(upgrade => {
+      const owned = Boolean(bank.upgrades?.[upgrade.id]);
+      return `<button class="focused-upgrade-card ${owned ? "owned" : ""}" onclick="buyFocusedUpgrade('${upgrade.id}')" ${owned || bank.cash < upgrade.cost ? "disabled" : ""}>
+        <span class="focused-upgrade-icon">${SHOP_SYMBOLS[upgrade.id] || "◆"}</span>
+        <strong>${upgrade.label}</strong>
+        <span>${upgrade.desc}</span>
+        <em>${owned ? "Installed" : fmt(upgrade.cost)}</em>
+      </button>`;
+    }).join("")}
+  </div>`;
+}
+
+function findFocusedUpgradePlacement(upgradeId) {
+  const oldRotation = branchState.buildRotation;
+  branchState.buildRotation = 0;
+  for (let y = 1; y < BRANCH_ROWS - 1; y++) {
+    for (let x = 1; x < BRANCH_COLS - 1; x++) {
+      if (canPlaceBranch(upgradeId, x, y)) return { x, y, oldRotation };
+    }
+  }
+  branchState.buildRotation = oldRotation;
+  return null;
+}
+
+function buyFocusedUpgrade(upgradeId) {
+  const upgrade = FOCUSED_UPGRADES.find(entry => entry.id === upgradeId);
+  if (!upgrade || bank.upgrades?.[upgradeId]) return;
+  const position = findFocusedUpgradePlacement(upgradeId);
+  if (!position) {
+    addLog(`There is no clear floor space for ${upgrade.label}.`, "warn");
+    return;
+  }
+  const placed = placeBranchUpgrade(upgradeId, position.x, position.y);
+  branchState.buildRotation = position.oldRotation;
+  if (!placed) return;
+  if (bank.phase === "report" && bank.lastReport) renderEndOfDay(bank.lastReport);
+  else renderOperations();
+}
+
+function hireMaraFromReward() {
+  hireStaff("mara-chen");
+  if (bank.staff.some(member => member.id === "mara-chen") && bank.phase === "report" && bank.lastReport) {
+    renderEndOfDay(bank.lastReport);
+  }
+}
+
+function renderEndOfDayReward() {
+  if ((bank.stats?.customersServed || 0) < 10) return "";
+  const mara = bank.staff?.find(member => member.id === "mara-chen");
+  if (!mara) {
+    const candidate = BankOperations.staffCandidate("mara-chen");
+    return `<section class="day-reward-card">
+      <div class="panel-kicker">A sustainable next step</div>
+      <h3>You cannot do every transaction forever.</h3>
+      <p><strong>${candidate.name}</strong> can handle deposits, withdrawals, and new accounts. You will still make every loan and customer follow-up decision.</p>
+      <button class="btn btn-green" onclick="hireMaraFromReward()" ${bank.cash < candidate.hireCost ? "disabled" : ""}>Hire Mara · ${fmt(candidate.hireCost)} now · ${fmt(candidate.dailyWage)}/day</button>
+    </section>`;
+  }
+  const owned = FOCUSED_UPGRADES.filter(upgrade => bank.upgrades?.[upgrade.id]).length;
+  if (!owned) {
+    return `<section class="day-reward-card">
+      <div class="panel-kicker">Choose your first improvement</div>
+      <h3>What should the bank become better at?</h3>
+      <p>Each improvement has one visible purpose. Choose when you are ready.</p>
+      ${focusedUpgradeCards(true)}
+    </section>`;
+  }
+  return "";
+}
+
 function renderOperations() {
   const body = document.getElementById("operationsBody");
   if (!body) return;
+  BankOperations.migrateRoster(bank);
+  const mara = bank.staff.find(member => member.id === "mara-chen");
+  const focusedPortfolio = BankPortfolio.portfolioSummary(bank.loanBook, bank.day);
+  const focusedDebt = BankEconomy.nextDebtPayment(bank);
+  body.innerHTML = `
+    <div class="focused-operations">
+      <section class="operations-card operations-wide">
+        <div class="panel-kicker">Team</div>
+        ${mara ? `<h3>Mara Chen runs the public counter</h3>
+          <p>She handles routine appointments automatically. Loans and returning-customer follow-ups always come to you.</p>
+          <div class="ops-metrics"><div><span>Daily wage</span><strong>${fmt(mara.dailyWage)}</strong></div><div><span>Appointments handled</span><strong>${mara.served || 0}</strong></div></div>`
+        : `<h3>Your first teller</h3><p>Mara Chen can remove routine repetition without taking over the choices that define the bank.</p>
+          <button class="btn btn-green" onclick="hireStaff('mara-chen')" ${bank.cash < 600 ? "disabled" : ""}>Hire Mara · ${fmt(600)}</button>`}
+      </section>
+      <section class="operations-card operations-wide">
+        <div class="panel-kicker">Commitments</div>
+        <div class="ops-metrics">
+          <div><span>Loans outstanding</span><strong>${fmt(focusedPortfolio.balance)}</strong></div>
+          <div><span>Expected next payment</span><strong>${fmt(focusedPortfolio.expectedNextDay)}</strong></div>
+          <div><span>Expected loan loss</span><strong>${fmt(focusedPortfolio.expectedLoss)}</strong></div>
+          <div><span>Next debt payment</span><strong>${fmt(focusedDebt.amount)} in ${focusedDebt.dueInDays} day${focusedDebt.dueInDays === 1 ? "" : "s"}</strong></div>
+        </div>
+      </section>
+      <section class="operations-card operations-wide">
+        <div class="panel-kicker">Four useful improvements</div>
+        <h3>Improve a felt need</h3>
+        <p>No sprawling catalog: every option changes a part of the daily loop you can see.</p>
+        ${focusedUpgradeCards()}
+      </section>
+    </div>`;
+  return;
   const restorePosition = document.getElementById("operationsOverlay")?.classList.contains("show");
   const previousScroll = body.scrollTop;
   const activeControl = document.activeElement?.dataset?.control || "";
