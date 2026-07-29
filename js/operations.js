@@ -99,7 +99,7 @@
   }
 
   function taskForEvent(eventType) {
-    if (eventType === "World Event" || eventType === "Branch Incident" || eventType === "Customer Follow-up") return null;
+    if (eventType === "World Event" || eventType === "Branch Incident" || eventType === "Customer Follow-up" || eventType === "Town Project") return null;
     return eventType === "Credit Application" ? "loans" : "counter";
   }
 
@@ -190,11 +190,20 @@
     if (upgrades < 1) {
       return { step: 5, total: 5, title: "Choose one useful branch improvement", progress: "0/1" };
     }
+    const townChoices = Array.isArray(bank.town?.choices) ? bank.town.choices : [];
+    if (!bank.town?.outcome) {
+      const next = townChoices.length < 1
+        ? "Hear the mill proposal on day 4"
+        : townChoices.length < 2
+          ? "Prepare the mill financing"
+          : "Make Silver Creek's decision on day 7";
+      return { step: 6, total: 7, title: next, progress: `${townChoices.length}/3 town decisions` };
+    }
     return {
-      step: 5,
-      total: 5,
-      title: "Silver Creek knows your bank",
-      progress: "Foundation complete",
+      step: 7,
+      total: 7,
+      title: "Silver Creek remembers your bank",
+      progress: "Local story complete",
       complete: true,
     };
   }
@@ -217,7 +226,7 @@
     const building = staffing || Object.keys(bank.upgrades || {}).length > 0;
     const credit = creditDecisions > 0 || (bank.loanBook || []).length > 0
       || staff.some(member => member.assignment === "loans");
-    const regional = branches > 1 || ((Number(bank.day) || 1) >= 30 && (Number(bank.prestigeLevel) || 0) >= 3);
+    const regional = branches > 1;
     return {
       stage: branches > 1 ? "Executive" : staff.length ? "Manager" : staffing ? "Operator" : "Teller",
       staffing,

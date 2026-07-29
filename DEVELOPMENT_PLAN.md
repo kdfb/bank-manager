@@ -85,6 +85,18 @@ Progression deepens the same loop instead of replacing it with unrelated systems
 - The player chooses a simple bank identity such as cautious, community-first, or growth-minded through repeated actions—not a separate policy spreadsheet.
 - A final town project asks the player to risk something meaningful and provides a satisfying campaign conclusion.
 
+## Seven-day campaign shape
+
+The focused campaign is one week in Silver Creek, not a march toward regional expansion.
+
+- **Days 1–3 — Belonging:** learn the counter, meet the recurring cast, and see early loan consequences.
+- **Day 4 — Proposal:** Elena and Samir ask the bank to help test a cooperative mill plan.
+- **Days 5–6 — Commitment:** normal obligations continue while local suppliers ask who should carry the early risk.
+- **Day 7 — Decision:** choose between a larger cooperative mill loan and a smaller, safer repair.
+- **Conclusion:** the ledger names the bank's identity from its actual lending and town choices, resolves the mill, and allows open-ended continuation.
+
+Early commitments must change the final numbers. Careful preparation makes the cooperative cheaper and less risky; declining early commitments preserves cash but leaves the larger plan more dangerous. The final choice is not a morality test: both outcomes keep Silver Creek alive in different ways.
+
 ## Features removed from the core game
 
 The following systems are not part of the focused campaign until the appointment loop proves fun in repeated playtests:
@@ -184,6 +196,8 @@ Implementation status: the catalog now exposes only four purpose-built improveme
 - Balance for several viable styles.
 
 Exit test: the campaign has a beginning, escalation, climax, and memorable ending without requiring regional expansion.
+
+Implementation status: a seven-day Silver Creek mill arc now places authored decisions inside the normal five-appointment loop on days 4, 6, and 7. Early choices alter the final loan amount and risk; the conclusion resolves either the cooperative or repair plan and identifies the bank as a careful steward, practical builder, or neighbors' bank from accumulated play. Regional simulation stays out of the focused week. Both finale paths and the mobile conclusion were exercised in-browser. Blind playtesting and broader balance tuning remain required before the campaign is considered proven.
 
 ## Playtest questions
 

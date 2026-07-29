@@ -13,6 +13,7 @@ test("web entry point loads economy before dependent gameplay modules", () => {
   const portfolio = html.indexOf('src="js/portfolio.js"');
   const world = html.indexOf('src="js/world.js"');
   const market = html.indexOf('src="js/market.js"');
+  const town = html.indexOf('src="js/town.js"');
   const campaign = html.indexOf('src="js/campaign.js"');
   const achievements = html.indexOf('src="js/achievements.js"');
   const operations = html.indexOf('src="js/operations.js"');
@@ -27,6 +28,7 @@ test("web entry point loads economy before dependent gameplay modules", () => {
   assert.ok(portfolio > economy && portfolio < world);
   assert.ok(world > portfolio && world < market);
   assert.ok(market > world && market < campaign);
+  assert.ok(town > market && town < campaign);
   assert.ok(campaign > market && campaign < operations);
   assert.ok(achievements > campaign && achievements < bank);
   assert.ok(operations > campaign && operations < bank);
@@ -124,7 +126,9 @@ test("campaign conclusion is persistent, replayable, and preserves open-ended pl
   const strategy = readFileSync(join(root, "js", "strategy.js"), "utf8");
   const branch = readFileSync(join(root, "js", "branch.js"), "utf8");
   assert.match(html, /id="legacyOverlay"[^>]*role="dialog"/);
-  assert.match(game, /campaignProgress\.complete\s*&&\s*!bank\.campaign\.victoryAcknowledged/);
+  assert.match(game, /maybeShowCampaignConclusion\(\)/);
+  assert.match(render, /BankTown\.isComplete\(bank\).*showSilverCreekConclusion/);
+  assert.match(render, /bank\.town\.acknowledged\s*=\s*true/);
   assert.match(render, /bank\.campaign\.victoryAcknowledged\s*=\s*true/);
   assert.match(html, /Continue in open-ended mode/);
   assert.match(strategy, /View legacy report/);
@@ -250,6 +254,21 @@ test("the first management unlock stays focused on delegation and four improveme
   assert.match(management, /Loans and returning-customer follow-ups always come to you/);
   assert.match(management, /function renderEndOfDayReward/);
   assert.match(render, /renderEndOfDayReward/);
+});
+
+test("the focused campaign culminates in a local seven-day decision", () => {
+  const html = readFileSync(join(root, "index.html"), "utf8");
+  const game = readFileSync(join(root, "js", "game.js"), "utf8");
+  const events = readFileSync(join(root, "js", "events.js"), "utf8");
+  const render = readFileSync(join(root, "js", "render.js"), "utf8");
+  const operations = readFileSync(join(root, "js", "operations.js"), "utf8");
+  assert.match(html, /js\/town\.js/);
+  assert.match(game, /BankTown\.nextMoment/);
+  assert.match(events, /Could Silver Creek Own Its Mill/);
+  assert.match(events, /What Kind of Town Will This Be/);
+  assert.match(render, /function showSilverCreekConclusion/);
+  assert.match(render, /The Silver Creek Ledger/);
+  assert.match(operations, /const regional = branches > 1/);
 });
 
 test("one modal owns focus while incompatible branch panels close each other", () => {

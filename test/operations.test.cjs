@@ -109,6 +109,12 @@ test("branch objectives advance through the operator-to-manager path", () => {
     stats: { customersServed: 10 },
     staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
     upgrades: { lobby: 1 },
+  }), 1_200).step, 6);
+  assert.equal(Operations.currentObjective(bankFixture({
+    stats: { customersServed: 10 },
+    staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
+    upgrades: { lobby: 1 },
+    town: { choices: [{ id: "mill-survey", choice: "survey" }], outcome: "cooperative" },
   }), 1_200).complete, true);
 });
 

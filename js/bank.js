@@ -58,6 +58,7 @@ function initBank() {
   BankWorld.migrateWorld(bank);
   BankMarket.migrateMarket(bank);
   BankCommunity.migrate(bank);
+  BankTown.migrate(bank);
   BankCampaign.migrateCampaign(bank);
   BankAchievements.migrate(bank);
   BankGuidance.migrate(bank);
@@ -69,6 +70,20 @@ function initBank() {
     bank.prestigeLevel = 3;
     bank.stats.customersServed = Math.max(bank.stats.customersServed, 55);
     bank.dayStartCash = bank.cash;
+  }
+  if (typeof location !== "undefined") {
+    const query = new URLSearchParams(location.search);
+    const debugTownDay = Math.max(0, Math.min(7, Number(query.get("debugTown")) || 0));
+    if (debugTownDay >= 4) {
+      const cautious = query.get("debugTownPath") === "cautious";
+      bank.day = debugTownDay;
+      bank.cash = Math.max(bank.cash, 8_000);
+      bank.rep = Math.max(bank.rep, 68);
+      bank.stats.customersServed = Math.max(bank.stats.customersServed, 15);
+      if (debugTownDay >= 6) BankTown.recordChoice(bank, "mill-survey", cautious ? "self-fund" : "survey");
+      if (debugTownDay >= 7) BankTown.recordChoice(bank, "supplier-note", cautious ? "collateral" : "bridge");
+      bank.dayStartCash = bank.cash;
+    }
   }
   if (typeof location !== "undefined" && new URLSearchParams(location.search).get("debugRivals") === "1") {
     const previewDay = bank.day;
@@ -112,6 +127,7 @@ const migrateLoadedBank = savedBank => {
     BankMarket.migrateMarket(BankWorld.migrateWorld(BankPortfolio.migrateLoanBook(BankEconomy.migrateBank(savedBank))))
   ));
   BankCommunity.migrate(migrated);
+  BankTown.migrate(migrated);
   BankGuidance.migrate(migrated);
   BankTelemetry.migrate(migrated);
   BankAchievements.migrate(migrated);

@@ -386,6 +386,150 @@ function makeCommunityFollowUpEvent(followUp) {
   };
 }
 
+function issueTownLoan(name, principal, risk, annualRate = 0.08) {
+  const amount = Math.max(0, Math.min(Number(principal) || 0, bank.cash));
+  if (!amount) return 0;
+  bank.cash -= amount;
+  bank.loansOut += amount;
+  bank.loanBook.push(BankPortfolio.createLoan({
+    id: `town-${bank.day}-${bank.loanBook.length + 1}`,
+    name,
+    principal: amount,
+    risk,
+    annualRate,
+    termDays: 24,
+    startDay: bank.day,
+    reviewed: Boolean(bank.upgrades?.risk_desk),
+  }));
+  bank.stats.loansApproved++;
+  bank.stats.totalIssued += amount;
+  return amount;
+}
+
+function makeTownProjectEvent(moment) {
+  if (moment.id === "mill-survey") {
+    const cost = 200;
+    return {
+      icon: "⚙️",
+      eventType: "Town Project",
+      title: "Could Silver Creek Own Its Mill?",
+      townMomentId: moment.id,
+      isNarrative: true,
+      story: "Elena and Samir bring a hand-drawn plan for a cooperative grain mill. Before anyone asks for a construction loan, an engineer must decide whether the old waterworks can be saved.",
+      summary: { purpose: "Feasibility survey", amount: fmt(cost), risk: "EARLY COMMITMENT", riskClass: "yellow" },
+      details: [
+        { key: "People", val: "Elena Ivanova and Samir Haddad" },
+        { key: "First step", val: "Survey the old mill and waterwheel" },
+        { key: "Bank cost", val: fmt(cost) },
+        { key: "Uncertainty", val: "No construction loan has been approved" },
+      ],
+      approveLabel: `Fund the survey · ${fmt(cost)}`,
+      denyLabel: "Ask the town to self-fund",
+      single: false,
+      canApprove: () => bank.cash >= cost,
+      cantMsg: `The bank needs ${fmt(cost)} in available cash to sponsor the survey.`,
+      choicePreview: {
+        approve: { title: "Learn before lending", summary: `${fmt(cost)} leaves cash today, but the final mill loan will be smaller and better understood.`, tone: "balanced" },
+        deny: { title: "Protect the vault", summary: "Keep the cash. The cooperative must spend a day raising its own survey fund.", tone: "safe" },
+      },
+      onApprove() {
+        bank.cash -= cost;
+        bank.profit -= cost;
+        bank.rep = Math.min(100, bank.rep + 2);
+        BankTown.recordChoice(bank, moment.id, "survey");
+        return { msg: `The bank funded the mill survey. ${fmt(cost)} spent · standing +2.`, kind: "good" };
+      },
+      onDeny() {
+        BankTown.recordChoice(bank, moment.id, "self-fund");
+        return { msg: "The cooperative will raise the survey money itself. The vault stays intact, but the plan loses time.", kind: "neutral" };
+      },
+    };
+  }
+
+  if (moment.id === "supplier-note") {
+    const amount = 350;
+    const surveyed = BankTown.choice(bank, "mill-survey")?.choice === "survey";
+    return {
+      icon: "🤝",
+      eventType: "Town Project",
+      title: "Timber, Stone, and a Promise",
+      townMomentId: moment.id,
+      isNarrative: true,
+      story: "Liam can supply safe timbers and Grace can bring iron fittings, but both need payment before the final cooperative vote. They ask the bank for a short bridge loan.",
+      summary: { purpose: "Supplier bridge loan", amount: fmt(amount), risk: surveyed ? "MEDIUM" : "HIGH", riskClass: surveyed ? "yellow" : "red" },
+      details: [
+        { key: "Borrower", val: "Silver Creek Mill Committee" },
+        { key: "Amount", val: fmt(amount) },
+        { key: "Use", val: "Reserve local timber and iron fittings" },
+        { key: "Preparation", val: surveyed ? "Engineering survey complete" : "No bank-funded survey" },
+      ],
+      approveLabel: `Bridge the suppliers · ${fmt(amount)}`,
+      denyLabel: "Require member collateral",
+      single: false,
+      canApprove: () => bank.cash >= amount,
+      cantMsg: `The bank needs ${fmt(amount)} in available cash for the bridge loan.`,
+      choicePreview: {
+        approve: { title: "Keep the plan moving", summary: `${fmt(amount)} becomes a real loan asset. The committee can lock in local materials before prices rise.`, tone: "balanced" },
+        deny: { title: "Share the risk", summary: "No bank cash leaves today. Members must pledge their own property before suppliers commit.", tone: "tradeoff" },
+      },
+      onApprove() {
+        const issued = issueTownLoan("Silver Creek Mill Committee", amount, surveyed ? "medium" : "high", 0.10);
+        bank.rep = Math.min(100, bank.rep + 2);
+        BankTown.recordChoice(bank, moment.id, "bridge");
+        return { msg: `${fmt(issued)} supplier bridge issued. The mill plan stays on schedule · standing +2.`, kind: "good" };
+      },
+      onDeny() {
+        BankTown.recordChoice(bank, moment.id, "collateral");
+        bank.rep = Math.max(0, bank.rep - 1);
+        return { msg: "The committee must pledge collateral. The bank avoids the bridge risk · standing -1.", kind: "warn" };
+      },
+    };
+  }
+
+  const surveyed = BankTown.choice(bank, "mill-survey")?.choice === "survey";
+  const bridged = BankTown.choice(bank, "supplier-note")?.choice === "bridge";
+  const preparation = Number(surveyed) + Number(bridged);
+  const cooperativeAmount = 900 - preparation * 100;
+  const cooperativeRisk = preparation >= 2 ? "medium" : "high";
+  const repairAmount = 300;
+  return {
+    icon: "🏘️",
+    eventType: "Town Project",
+    title: "What Kind of Town Will This Be?",
+    townMomentId: moment.id,
+    isNarrative: true,
+    story: "The mill committee fills the bank after closing. One plan gives Silver Creek shared ownership and a larger obligation. The other repairs the old wheel cheaply and leaves the future undecided.",
+    summary: { purpose: "Final mill financing", amount: `${fmt(repairAmount)}–${fmt(cooperativeAmount)}`, risk: cooperativeRisk.toUpperCase(), riskClass: cooperativeRisk === "high" ? "red" : "yellow" },
+    details: [
+      { key: "Cooperative plan", val: `${fmt(cooperativeAmount)} · ${cooperativeRisk} risk · shared local ownership` },
+      { key: "Repair plan", val: `${fmt(repairAmount)} · low risk · one more season of output` },
+      { key: "Preparation", val: `${preparation} of 2 early commitments completed` },
+      { key: "Decision", val: "Both paths serve the town differently" },
+    ],
+    approveLabel: `Back the cooperative · ${fmt(cooperativeAmount)}`,
+    denyLabel: `Finance the repair · ${fmt(repairAmount)}`,
+    single: false,
+    canApprove: () => bank.cash >= cooperativeAmount,
+    cantMsg: `The cooperative plan needs ${fmt(cooperativeAmount)} in available cash. The smaller repair remains possible.`,
+    choicePreview: {
+      approve: { title: "Build something new", summary: `Issue a ${cooperativeRisk}-risk ${fmt(cooperativeAmount)} loan. The town owns the mill—and the bank carries the larger obligation.`, tone: cooperativeRisk === "high" ? "risk" : "balanced" },
+      deny: { title: "Preserve what works", summary: `Issue a low-risk ${fmt(repairAmount)} repair loan. Cash and risk stay lower, but the town postpones shared ownership.`, tone: "safe" },
+    },
+    onApprove() {
+      const issued = issueTownLoan("Silver Creek Cooperative Mill", cooperativeAmount, cooperativeRisk, 0.09);
+      bank.rep = Math.min(100, bank.rep + 5);
+      BankTown.complete(bank, "cooperative");
+      return { msg: `${fmt(issued)} committed to the cooperative mill. Silver Creek will own its spring harvest · standing +5.`, kind: "good" };
+    },
+    onDeny() {
+      const issued = issueTownLoan("Old Mill Repair Committee", repairAmount, "low", 0.06);
+      bank.rep = Math.min(100, bank.rep + 2);
+      BankTown.complete(bank, "repair");
+      return { msg: `${fmt(issued)} committed to repair the old wheel. The town buys a safer year · standing +2.`, kind: "neutral" };
+    },
+  };
+}
+
 function makeRandomEvent() {
   if (Math.random() < 0.75) return makeWorldEvent();
   const ev = pick(INCIDENT_EVENTS);

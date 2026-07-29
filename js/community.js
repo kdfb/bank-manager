@@ -87,7 +87,10 @@
       { title: "First Snow", summary: "Familiar faces return with winter plans" },
       { title: "News Travels", summary: "Earlier choices begin coming home" },
       { title: "A Town at Work", summary: "Small businesses prepare for the thaw" },
-      { title: "Promises Kept", summary: "Loans, trust, and obligations come due" },
+      { title: "Counting the Cost", summary: "The mill plan meets the bank's ledger" },
+      { title: "Neighbors at the Table", summary: "Local suppliers decide what they can risk" },
+      { title: "The Decision", summary: "Silver Creek chooses what it will build together" },
+      { title: "A Bank with Roots", summary: "Open-ended life continues after the town's choice" },
     ];
     return themes[(Math.max(1, Number(day) || 1) - 1) % themes.length];
   }
