@@ -15,7 +15,7 @@
     Object.freeze({ id: "COUNTY_BANK", title: "County Institution", description: "Reach County Bank prestige.", test: bank => (bank.prestigeLevel || 0) >= 2 }),
     Object.freeze({ id: "BRANCH_NETWORK", title: "Regional Ambition", description: "Operate at least two branches.", test: bank => (bank.campaign?.branches || []).length >= 2 }),
     Object.freeze({ id: "DEBT_FREE", title: "Clear of Creditors", description: "Repay all external debt.", test: bank => Number(bank.debt) <= 0 }),
-    Object.freeze({ id: "BANKING_LEGACY", title: "Frontier Banking Legacy", description: "Complete the full campaign.", test: (_bank, context) => context.campaignComplete === true }),
+    Object.freeze({ id: "BANKING_LEGACY", title: "Silver Creek Legacy", description: "Complete Silver Creek's seven-day story.", test: (_bank, context) => context.campaignComplete === true }),
   ]);
   const BY_ID = Object.freeze(Object.fromEntries(DEFINITIONS.map(definition => [definition.id, definition])));
 

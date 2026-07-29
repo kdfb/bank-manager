@@ -1,4 +1,4 @@
-const CACHE_NAME = "bank-manager-shell-v20";
+const CACHE_NAME = "bank-manager-shell-v21";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -27,6 +27,7 @@ const APP_SHELL = [
   "./js/world.js",
   "./js/market.js",
   "./js/community.js",
+  "./js/town.js",
   "./js/campaign.js",
   "./js/achievements.js",
   "./js/operations.js",

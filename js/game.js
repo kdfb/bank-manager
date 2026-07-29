@@ -8,11 +8,12 @@ const reportedAchievements = new Set();
 
 function platformProgressContext() {
   const campaign = BankCampaign.campaignStatus(bank, netWorth());
+  const townComplete = typeof BankTown !== "undefined" && BankTown.isComplete(bank);
   const location = BankMarket.locationProfile(bank);
   const prestige = BankMarket.PRESTIGE_TIERS[bank.prestigeLevel || 0];
   return {
-    campaignComplete: campaign.complete,
-    campaignTitle: campaign.complete ? "Legacy secured" : campaign.current.title,
+    campaignComplete: townComplete || campaign.complete,
+    campaignTitle: townComplete ? BankTown.identity(bank).title : campaign.complete ? "Legacy secured" : campaign.current.title,
     locationLabel: location.label,
     prestigeTitle: prestige.title,
   };
@@ -115,11 +116,14 @@ function makeCustomerEvent() {
     }
   }
   const queuedCommunityFollowUps = queue.map(event => event.communityFollowUpId).filter(Boolean);
+  const queuedTownMoments = queue.map(event => event.townMomentId).filter(Boolean);
+  const townMoment = BankTown.nextMoment(bank, queuedTownMoments);
+  if (townMoment) return makeTownProjectEvent(townMoment);
   const communityFollowUp = BankCommunity.pendingFollowUps(bank, queuedCommunityFollowUps)[0];
   if (communityFollowUp) return makeCommunityFollowUpEvent(communityFollowUp);
   if (BankWorld.pendingFollowUps(bank).some(pending => pending.dueDay <= bank.day)) return makeWorldEvent();
   const roll = Math.random();
-  if (bank.day >= 6 && roll < 0.05) return makeRandomEvent();
+  if (bank.day >= 8 && roll < 0.05) return makeRandomEvent();
   if (bank.day <= 30) return makeRecurringCustomerEvent(queue.length);
   const profile = BankMarket.customerProfile(bank, Math.random);
   if (profile.service === "loan") return makeLoanEvent(profile);
@@ -204,7 +208,10 @@ function endOfDay() {
 
   const activeBranchProfit = bank.profit - profitBefore;
   BankCampaign.recordActiveBranchDay(bank, activeBranchProfit);
-  const networkDay = BankCampaign.simulateNetworkDay(bank, { rivalGrowth: worldModifiers.rivalGrowth });
+  const focusedLocalDay = bank.day <= 7 && (bank.campaign?.branches?.length || 1) === 1;
+  const networkDay = focusedLocalDay
+    ? { results: [], profit: 0, competition: { actions: [], rivals: bank.campaign.rivals || [], activeLeader: null } }
+    : BankCampaign.simulateNetworkDay(bank, { rivalGrowth: worldModifiers.rivalGrowth });
   if (networkDay.results.length) {
     const profitable = networkDay.results.filter(result => result.profit > 0).length;
     addLog(`Regional branches reported ${networkDay.profit >= 0 ? "+" : ""}${fmt(networkDay.profit)} consolidated profit; ${profitable}/${networkDay.results.length} were profitable.`, networkDay.profit >= 0 ? "good" : "warn");
@@ -263,7 +270,7 @@ function endOfDay() {
   }
   renderEndOfDay(bank.lastReport);
   BankAudio.play("dayEnd");
-  if (campaignProgress.complete && !bank.campaign.victoryAcknowledged) showLegacyConclusion();
+  maybeShowCampaignConclusion();
   saveGame();
 }
 
@@ -373,7 +380,7 @@ function menuLoadFromSlot(slot) {
   renderShop();
   if (bank.phase === "report" && bank.lastReport) {
     renderEndOfDay(bank.lastReport);
-    if (bank.lastReport.campaignProgress?.complete && !bank.campaign.victoryAcknowledged) showLegacyConclusion();
+    maybeShowCampaignConclusion();
   }
   else startTimers();
 }
@@ -433,7 +440,7 @@ function restartGame() {
   renderShop();
   if (bank.phase === "report" && bank.lastReport) {
     renderEndOfDay(bank.lastReport);
-    if (bank.lastReport.campaignProgress?.complete && !bank.campaign.victoryAcknowledged) showLegacyConclusion();
+    maybeShowCampaignConclusion();
   }
   else startTimers();
 

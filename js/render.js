@@ -211,7 +211,7 @@ function renderEndOfDay(report) {
     <div class="day-summary-grid">
       <div><span>Closing cash</span><strong>${fmt(bank.cash)}</strong></div>
       <div><span>Net capital</span><strong>${fmt(netWorth())}</strong></div>
-      <div><span>Appointments</span><strong>${bank.dayMetrics.customersServed} served</strong></div>
+      <div><span>Appointments</span><strong>${BankOperations.dailyAppointmentTarget(bank)} completed</strong></div>
       <div><span>Returning faces</span><strong>${bank.dayMetrics.returningCustomers || 0}</strong></div>
     </div>
     <div class="next-obligation"><span>Next known obligation</span><strong>${fmt(nextDebt.amount)} debt payment in ${nextDebt.dueInDays} day${nextDebt.dueInDays === 1 ? "" : "s"}</strong></div>
@@ -269,9 +269,47 @@ function showLegacyConclusion() {
   return true;
 }
 
+function showSilverCreekConclusion() {
+  const summary = BankTown.summary(bank, netWorth());
+  if (!summary) return false;
+  pauseTimers();
+  decisionOpen = true;
+  document.getElementById("legacyTitle").textContent = "The Silver Creek Ledger";
+  document.getElementById("legacyContinueBtn").textContent = "Continue in Silver Creek";
+  const body = document.getElementById("legacyBody");
+  body.innerHTML = `
+    <div class="legacy-heading">
+      <span>Seven days of names, risks, and promises</span>
+      <h3>${summary.title}</h3>
+      <p id="legacyEpilogue">${summary.styleSummary}</p>
+    </div>
+    <div class="legacy-metrics">
+      <div><span>Closing net capital</span><strong>${fmt(summary.metrics.netCapital)}</strong></div>
+      <div><span>Appointments served</span><strong>${summary.metrics.customersServed}</strong></div>
+      <div><span>Familiar neighbors</span><strong>${summary.metrics.knownCustomers}</strong></div>
+      <div><span>Trusted relationships</span><strong>${summary.metrics.trustedCustomers}</strong></div>
+      <div><span>Loans approved</span><strong>${summary.metrics.loansApproved}</strong></div>
+      <div><span>Loans declined</span><strong>${summary.metrics.loansDenied}</strong></div>
+    </div>
+    <div class="legacy-story silver-creek-ending">
+      <article><span>Your town-defining choice</span><strong>${summary.headline}</strong><p>${summary.epilogue}</p></article>
+      <article><span>What the ledger cannot measure</span><strong>The counter remembers</strong><p>Carmen, Elena, Hiro, Liam, Grace, and Samir will keep returning. Their histories—and the mill loan—continue in open-ended play.</p></article>
+    </div>`;
+  showAppDialog("legacyOverlay", "#legacyContinueBtn");
+  BankAudio.play("victory");
+  return true;
+}
+
+function maybeShowCampaignConclusion() {
+  if (BankTown.isComplete(bank) && !bank.town.acknowledged) return showSilverCreekConclusion();
+  if (BankCampaign.campaignStatus(bank, netWorth()).complete && !bank.campaign.victoryAcknowledged) return showLegacyConclusion();
+  return false;
+}
+
 function closeLegacyConclusion() {
   hideAppDialog("legacyOverlay", "#decisionLayer button");
-  bank.campaign.victoryAcknowledged = true;
+  if (BankTown.isComplete(bank)) bank.town.acknowledged = true;
+  else bank.campaign.victoryAcknowledged = true;
   saveGame();
   BankAudio.play("uiClose");
 }
