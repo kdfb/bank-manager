@@ -1867,6 +1867,53 @@ body.modal-open .zoom-controls { display: none !important; }
   line-height: 1.45;
 }
 
+.relationship-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 9px 12px 0;
+  padding: 7px 9px;
+  border: 1px solid rgba(108, 77, 45, .2);
+  border-radius: 5px;
+  background: rgba(255, 250, 226, .28);
+  color: #624b35;
+}
+
+.relationship-note.returning {
+  border-color: rgba(83, 119, 76, .35);
+  background: rgba(91, 137, 82, .1);
+}
+
+.relationship-note span {
+  flex: 0 0 auto;
+  color: #7d6244;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.relationship-note strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-info-relationship {
+  display: grid;
+  gap: 3px;
+  margin: 9px 0;
+  padding: 9px 10px;
+  border-left: 3px solid #739169;
+  background: rgba(115, 145, 105, .1);
+}
+
+.event-info-relationship span { color: var(--muted); font-size: 9px; text-transform: uppercase; }
+.event-info-relationship strong { font-size: 11px; }
+
 .routine-service {
   display: flex;
   justify-content: space-between;
@@ -1949,6 +1996,8 @@ body.at-teller .control-hints { display: none; }
   body.at-teller .touch-dpad { visibility: hidden; pointer-events: none; }
   .desk-event-layer { width: min(430px, calc(100vw - 12px)); }
   .event-story { padding: 10px 12px 2px; font-size: 13px; }
+  .relationship-note { align-items: start; flex-direction: column; gap: 3px; }
+  .relationship-note strong { text-align: left; white-space: normal; }
   .choice-grid { grid-template-columns: 1fr; gap: 6px; padding-top: 8px; }
   .choice-card { min-height: 0; padding: 10px; }
   .choice-card small { margin-top: 5px; }

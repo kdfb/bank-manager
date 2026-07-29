@@ -45,18 +45,48 @@ function buildDay() {
 function makeOpeningDayEvent(index) {
   const caseNumber = Math.max(0, Math.min(4, index));
   const blueprints = [
-    { segment: "households", service: "account", name: "Carmen Reyes", organization: "Reyes Family Fund", purpose: "a household account", risk: "low" },
-    { segment: "ranchers", service: "loan", name: "Elena Ivanova", organization: "Green Valley Farm", purpose: "winter feed before the first snow", risk: "medium" },
-    { segment: "households", service: "withdrawal", name: "Hiro Tanaka", organization: "The Tanaka Household", purpose: "winter provisions", risk: "low" },
-    { segment: "miners", service: "loan", name: "Liam Nkosi", organization: "Copper Ridge Crew", purpose: "safer equipment for a promising claim", risk: "high" },
-    { segment: "merchants", service: "deposit", name: "Grace Liu", organization: "Blue Peak Outfitters", purpose: "the week's shop takings", risk: "low" },
+    { customer: "carmen", service: "account", purpose: "a household account", risk: "low" },
+    { customer: "elena", service: "loan", purpose: "winter feed before the first snow", risk: "medium" },
+    { customer: "hiro", service: "withdrawal", purpose: "winter provisions", risk: "low" },
+    { customer: "liam", service: "loan", purpose: "safer equipment for a promising claim", risk: "high" },
+    { customer: "grace", service: "deposit", purpose: "the week's shop takings", risk: "low" },
   ];
   const blueprint = blueprints[caseNumber];
-  const profile = BankMarket.customerProfileForSegment(blueprint.segment, blueprint.service, () => 0.35);
-  Object.assign(profile, blueprint);
+  const profile = BankCommunity.profile(bank, blueprint.customer, blueprint.service, blueprint);
   if (blueprint.service === "loan") return makeLoanEvent(profile);
   if (blueprint.service === "deposit") return makeDepositEvent(profile);
   if (blueprint.service === "withdrawal") return makeWithdrawalEvent(profile);
+  return makeAccountEvent(profile);
+}
+
+function makeRecurringCustomerEvent(index) {
+  const lineups = [
+    ["grace", "samir", "carmen", "hiro", "elena"],
+    ["hiro", "grace", "carmen", "samir", "liam"],
+    ["elena", "liam", "grace", "carmen", "samir"],
+  ];
+  const services = ["deposit", "loan", "withdrawal", "loan", "account"];
+  const purposes = {
+    carmen: "a sturdy sewing machine for winter work",
+    elena: "seed and repairs before the spring thaw",
+    hiro: "insulation before the next cold front",
+    liam: "tools and timber for the western shaft",
+    grace: "winter stock for families arriving late in the season",
+    samir: "a reliable iron oven for the morning bread line",
+  };
+  const lineup = lineups[(Math.max(2, bank.day) - 2) % lineups.length];
+  const slot = Math.max(0, Math.min(4, index));
+  const customerId = lineup[slot];
+  const service = services[slot];
+  const riskCycle = ["low", "medium", "high"];
+  const risk = service === "loan" ? riskCycle[(bank.day + slot) % riskCycle.length] : "low";
+  const profile = BankCommunity.profile(bank, customerId, service, {
+    purpose: purposes[customerId],
+    risk,
+  });
+  if (service === "loan") return makeLoanEvent(profile);
+  if (service === "deposit") return makeDepositEvent(profile);
+  if (service === "withdrawal") return makeWithdrawalEvent(profile);
   return makeAccountEvent(profile);
 }
 
@@ -84,9 +114,13 @@ function makeCustomerEvent() {
       return makeAccountEvent(profile);
     }
   }
+  const queuedCommunityFollowUps = queue.map(event => event.communityFollowUpId).filter(Boolean);
+  const communityFollowUp = BankCommunity.pendingFollowUps(bank, queuedCommunityFollowUps)[0];
+  if (communityFollowUp) return makeCommunityFollowUpEvent(communityFollowUp);
   if (BankWorld.pendingFollowUps(bank).some(pending => pending.dueDay <= bank.day)) return makeWorldEvent();
   const roll = Math.random();
   if (bank.day >= 6 && roll < 0.05) return makeRandomEvent();
+  if (bank.day <= 30) return makeRecurringCustomerEvent(queue.length);
   const profile = BankMarket.customerProfile(bank, Math.random);
   if (profile.service === "loan") return makeLoanEvent(profile);
   if (profile.service === "deposit") return makeDepositEvent(profile);
@@ -190,7 +224,6 @@ function endOfDay() {
   bank.marketShare = Math.max(1, bank.marketShare + shareChange);
   if ((bank.upgrades?.lobby || 0) > 0) bank.rep = Math.max(25, bank.rep);
   const prestigePromotions = BankMarket.updatePrestige(bank, netWorth());
-  prestigePromotions.forEach(tier => addLog(`Prestige advanced to ${tier.title}. Unlocked: ${tier.unlock}.`, "good"));
   const campaignProgress = BankCampaign.updateProgress(bank, netWorth());
 
   const dayDelta = bank.profit - profitBefore;

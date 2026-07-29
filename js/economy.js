@@ -67,6 +67,7 @@
       worldEventsResolved: 0,
       segmentResults: {},
       customersServed: 0,
+      returningCustomers: 0,
       staffServed: 0,
       customersLost: 0,
       totalWaitSeconds: 0,

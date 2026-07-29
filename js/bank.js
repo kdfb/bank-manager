@@ -57,6 +57,7 @@ function initBank() {
   }
   BankWorld.migrateWorld(bank);
   BankMarket.migrateMarket(bank);
+  BankCommunity.migrate(bank);
   BankCampaign.migrateCampaign(bank);
   BankAchievements.migrate(bank);
   BankGuidance.migrate(bank);
@@ -110,6 +111,7 @@ const migrateLoadedBank = savedBank => {
   const migrated = BankCampaign.migrateCampaign(BankOperations.migrateRoster(
     BankMarket.migrateMarket(BankWorld.migrateWorld(BankPortfolio.migrateLoanBook(BankEconomy.migrateBank(savedBank))))
   ));
+  BankCommunity.migrate(migrated);
   BankGuidance.migrate(migrated);
   BankTelemetry.migrate(migrated);
   BankAchievements.migrate(migrated);
