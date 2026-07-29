@@ -186,7 +186,7 @@ Implementation status: the recurring cast, saved visit history, day themes, and 
 
 Exit test: earning the first teller changes the rhythm and feels like a reward.
 
-Implementation status: the catalog now exposes only four purpose-built improvements; Mara delegates routine services while loans and relationship follow-ups stay manual; hiring and the first improvement are offered as day-end rewards; and the former policy, training, pricing, prestige, achievement, and telemetry walls are absent from the normal opening flow. A phone-sized playthrough verified the compact management screen and one-tap placement. Blind playtesting is still required to prove that the rhythm change feels rewarding.
+Implementation status: the catalog now exposes only four purpose-built improvements; Mara delegates routine services while loans and relationship follow-ups stay manual; hiring and the first improvement are offered as day-end rewards; and the former policy, training, pricing, prestige, achievement, and telemetry walls are absent from the normal opening flow. Once Mara is hired, movement controls disappear, a small service receipt confirms each delegated appointment, and she begins work immediately even when hired mid-day. The day-end report also carries the mill thread forward with the exact financing consequence of each early choice. A phone-sized playthrough verified the compact management screen, zoom controls, one-tap placement, and delegated feedback. Blind playtesting is still required to prove that the rhythm change feels rewarding.
 
 ### Slice D — Focused campaign
 

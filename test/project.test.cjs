@@ -271,6 +271,20 @@ test("the focused campaign culminates in a local seven-day decision", () => {
   assert.match(operations, /const regional = branches > 1/);
 });
 
+test("delegation removes movement clutter and reports Mara's work visibly", () => {
+  const html = readFileSync(join(root, "index.html"), "utf8");
+  const css = readFileSync(join(root, "css", "style.css"), "utf8");
+  const branch = readFileSync(join(root, "js", "branch.js"), "utf8");
+  const render = readFileSync(join(root, "js", "render.js"), "utf8");
+  assert.match(html, /id="staffServiceToast"[^>]*role="status"/);
+  assert.match(css, /body\.delegated-counter \.touch-controls/);
+  assert.match(branch, /function showStaffServiceToast/);
+  assert.match(render, /class="town-report-thread"/);
+  assert.match(render, /card\.scrollTop = 0/);
+  const management = readFileSync(join(root, "js", "management.js"), "utf8");
+  assert.match(management, /performance\.now\(\) \+ 800/);
+});
+
 test("one modal owns focus while incompatible branch panels close each other", () => {
   const help = readFileSync(join(root, "js", "help.js"), "utf8");
   const branch = readFileSync(join(root, "js", "branch.js"), "utf8");

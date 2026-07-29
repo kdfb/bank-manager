@@ -64,3 +64,18 @@ test("a guarded lending pattern earns the careful steward identity", () => {
   Town.complete(bank, "repair");
   assert.equal(Town.identity(bank).id, "steward");
 });
+
+test("each early commitment visibly improves the final cooperative terms", () => {
+  const bank = bankFixture({ day: 4 });
+  assert.deepEqual(Town.financingTerms(bank), {
+    preparation: 0, cooperativeAmount: 900, cooperativeRisk: "high", repairAmount: 300,
+  });
+  Town.recordChoice(bank, "mill-survey", "survey");
+  assert.equal(Town.financingTerms(bank).cooperativeAmount, 800);
+  assert.match(Town.projectStatus(bank).body, /lowered.*\$100/i);
+  Town.recordChoice(bank, "supplier-note", "bridge");
+  assert.deepEqual(Town.financingTerms(bank), {
+    preparation: 2, cooperativeAmount: 700, cooperativeRisk: "medium", repairAmount: 300,
+  });
+  assert.match(Town.projectStatus(bank).body, /medium-risk \$700/);
+});

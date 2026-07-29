@@ -88,6 +88,7 @@ function renderStats() {
     r >= 50 ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
 
   const features = BankOperations.featureAvailability(bank);
+  document.body.classList.toggle("delegated-counter", BankOperations.activeStaff(bank, "counter").length > 0);
   const operationsButton = document.getElementById("operationsBtn");
   const strategyButton = document.getElementById("strategyBtn");
   const buildButton = document.getElementById("buildModeBtn");
@@ -136,6 +137,15 @@ function renderDots() {
 }
 
 // End-of-day summary card — shows actual numbers already applied to bank state.
+function renderTownReportThread() {
+  if (bank.day < 3 || typeof BankTown === "undefined") return "";
+  const status = BankTown.projectStatus(bank);
+  return `<section class="town-report-thread">
+    <div><span>Silver Creek Mill · ${status.progress}</span><strong>${status.title}</strong></div>
+    <p>${status.body}</p>
+  </section>`;
+}
+
 function renderEndOfDayLegacy(loanIncome, depInt, overhead, dayDelta) {
   const card       = document.getElementById("eventCard");
   decisionOpen = true;
@@ -167,6 +177,7 @@ function renderEndOfDayLegacy(loanIncome, depInt, overhead, dayDelta) {
     <div class="btn-row one-col">
       <button class="btn btn-purple" onclick="startNextDay()">Start ${gameDate(bank.day + 1)} →</button>
     </div>`;
+  card.scrollTop = 0;
   document.getElementById("dots").innerHTML = "";
 }
 
@@ -215,6 +226,7 @@ function renderEndOfDay(report) {
       <div><span>Returning faces</span><strong>${bank.dayMetrics.returningCustomers || 0}</strong></div>
     </div>
     <div class="next-obligation"><span>Next known obligation</span><strong>${fmt(nextDebt.amount)} debt payment in ${nextDebt.dueInDays} day${nextDebt.dueInDays === 1 ? "" : "s"}</strong></div>
+    ${renderTownReportThread()}
     <details class="report-details">
       <summary>View full ledger</summary>
       <div class="event-body eod-body">
@@ -234,6 +246,7 @@ function renderEndOfDay(report) {
     <div class="btn-row one-col">
       <button class="btn btn-green" onclick="startNextDay()">Open for ${gameDate(bank.day + 1)} →</button>
     </div>`;
+  card.scrollTop = 0;
   document.getElementById("dots").innerHTML = "";
 }
 
@@ -388,6 +401,7 @@ function renderEvent() {
     <div class="event-body">${detailsHtml}</div>
     ${btnsHtml}`;
 
+  card.scrollTop = 0;
   renderDots();
 }
 

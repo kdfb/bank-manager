@@ -41,6 +41,13 @@ test("guidance stays focused on finance, staffing, and the loan book", () => {
   assert.equal(Guidance.next(bank).id, "staffing");
 });
 
+test("focused guidance never sends players to the retired build screen", () => {
+  assert.ok(Guidance.TIPS.every(tip => tip.action !== "build"));
+  const tip = Guidance.TIPS.find(entry => entry.id === "workstations");
+  assert.equal(tip.action, "manage");
+  assert.match(tip.body, /four focused improvements/i);
+});
+
 test("recovery guidance appears from either cash or reserve pressure", () => {
   assert.ok(Guidance.available(bankFixture({ day: 8, cash: 600 })).some(tip => tip.id === "recovery"));
   assert.ok(Guidance.available(bankFixture({ day: 8, cash: 400, deposits: 4_000 })).some(tip => tip.id === "recovery"));
