@@ -206,12 +206,13 @@ test("mobile play keeps secondary actions compact and supports persistent camera
 
 test("the opening day is a focused five-appointment banking loop", () => {
   const game = readFileSync(join(root, "js", "game.js"), "utf8");
+  const community = readFileSync(join(root, "js", "community.js"), "utf8");
   const events = readFileSync(join(root, "js", "events.js"), "utf8");
   const render = readFileSync(join(root, "js", "render.js"), "utf8");
   const css = readFileSync(join(root, "css", "style.css"), "utf8");
   assert.match(game, /function makeOpeningDayEvent/);
   for (const customer of ["Carmen Reyes", "Green Valley Farm", "Hiro Tanaka", "Copper Ridge Crew", "Blue Peak Outfitters"]) {
-    assert.match(game, new RegExp(customer));
+    assert.match(community, new RegExp(customer));
   }
   assert.match(events, /single:\s*true/);
   assert.match(events, /choicePreview/);
@@ -219,6 +220,22 @@ test("the opening day is a focused five-appointment banking loop", () => {
   assert.match(render, /class="choice-grid"/);
   assert.match(render, /class="report-details"/);
   assert.match(css, /body\.decision-open \.interaction-prompt/);
+});
+
+test("named customers persist and loan choices return as later consequences", () => {
+  const html = readFileSync(join(root, "index.html"), "utf8");
+  const community = readFileSync(join(root, "js", "community.js"), "utf8");
+  const game = readFileSync(join(root, "js", "game.js"), "utf8");
+  const events = readFileSync(join(root, "js", "events.js"), "utf8");
+  const render = readFileSync(join(root, "js", "render.js"), "utf8");
+  assert.match(html, /js\/community\.js/);
+  assert.match(community, /scheduleLoanFollowUp/);
+  assert.match(community, /Returning customer/);
+  assert.match(game, /makeRecurringCustomerEvent/);
+  assert.match(game, /pendingFollowUps/);
+  assert.match(events, /makeCommunityFollowUpEvent/);
+  assert.match(render, /relationship-note/);
+  assert.match(render, /Returning faces/);
 });
 
 test("one modal owns focus while incompatible branch panels close each other", () => {

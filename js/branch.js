@@ -1042,6 +1042,11 @@ function updateModeBanner() {
     el.textContent = sellMode ? "Sell mode · choose a furnishing to remove" : "Build mode · choose an item, then place it on an open floor tile";
   } else {
     const objective = BankOperations.currentObjective(bank, netWorth());
+    const theme = typeof BankCommunity !== "undefined" ? BankCommunity.dayTheme(bank.day) : null;
+    if (theme && bank.day <= 30) {
+      el.textContent = `${theme.title} · ${theme.summary}`;
+      return;
+    }
     el.textContent = objective.complete
       ? "Foundation complete · Keep serving Silver Creek"
       : `Goal ${objective.step} of ${objective.total} · ${objective.title} · ${objective.progress}`;
@@ -1188,6 +1193,9 @@ function recordCustomerService(customer, staffMember) {
   }
   bank.stats.customersServed++;
   bank.dayMetrics.customersServed++;
+  if (customer.event?.relationship?.isReturning) {
+    bank.dayMetrics.returningCustomers = (bank.dayMetrics.returningCustomers || 0) + 1;
+  }
   if (customer.event?.segmentId) {
     BankMarket.recordSegmentOutcome(
       bank,
@@ -1202,8 +1210,7 @@ function recordCustomerService(customer, staffMember) {
     bank.dayMetrics.staffServed++;
     staffMember.served = (staffMember.served || 0) + 1;
   }
-  const promotions = BankMarket.updatePrestige(bank, netWorth());
-  promotions.forEach(tier => addLog(`Prestige advanced to ${tier.title}. Unlocked: ${tier.unlock}.`, "good"));
+  BankMarket.updatePrestige(bank, netWorth());
 }
 
 function branchAutoResolve(silent = false) {

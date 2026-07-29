@@ -80,8 +80,7 @@ function renderStats() {
   debtEl.textContent       = fmt(bank.debt || 0);
   if (subtitleEl) {
     const location = BankMarket.locationProfile(bank);
-    const tier = BankMarket.PRESTIGE_TIERS[bank.prestigeLevel || 0];
-    subtitleEl.textContent = `${location.label} · ${tier.title}`;
+    subtitleEl.textContent = `${location.label} · Community Bank`;
   }
 
   repEl.textContent = `${r} / 100`;
@@ -212,7 +211,7 @@ function renderEndOfDay(report) {
       <div><span>Closing cash</span><strong>${fmt(bank.cash)}</strong></div>
       <div><span>Net capital</span><strong>${fmt(netWorth())}</strong></div>
       <div><span>Appointments</span><strong>${bank.dayMetrics.customersServed} served</strong></div>
-      <div><span>Customers lost</span><strong>${bank.dayMetrics.customersLost}</strong></div>
+      <div><span>Returning faces</span><strong>${bank.dayMetrics.returningCustomers || 0}</strong></div>
     </div>
     <div class="next-obligation"><span>Next known obligation</span><strong>${fmt(nextDebt.amount)} debt payment in ${nextDebt.dueInDays} day${nextDebt.dueInDays === 1 ? "" : "s"}</strong></div>
     <details class="report-details">
@@ -329,6 +328,13 @@ function renderEvent() {
        </div>
        <button class="event-more-link" onclick="openEventInfo()">Review the full file</button>`;
 
+  const relationshipHtml = ev.relationship
+    ? `<div class="relationship-note ${ev.relationship.isReturning ? "returning" : "new"}">
+         <span>${ev.relationship.isReturning ? "Known customer" : "New customer"}</span>
+         <strong>${ev.relationship.text}</strong>
+       </div>`
+    : "";
+
   card.innerHTML = `
     <div class="event-head">
       <div class="event-icon">${ev.icon}</div>
@@ -337,6 +343,7 @@ function renderEvent() {
         <div class="title">${ev.title}</div>
       </div>
     </div>
+    ${relationshipHtml}
     <p class="event-story">${ev.story || `${ev.title} has come to the counter.`}</p>
     <div class="event-body">${detailsHtml}</div>
     ${btnsHtml}`;
@@ -368,9 +375,13 @@ function openEventInfo() {
   const details = ev.details?.map(d =>
     `<div class="event-info-row"><span>${d.key}</span><span class="${d.cls || ""}">${d.val}</span></div>`
   ).join("") || "";
+  const relationship = ev.relationship
+    ? `<div class="event-info-relationship"><span>Relationship</span><strong>${ev.relationship.text}</strong></div>`
+    : "";
   body.innerHTML = `
     <div class="event-info-body">
       <p>${ev.eventType}: <strong>${ev.title}</strong></p>
+      ${relationship}
       <div class="event-info-list">${details}</div>
     </div>`;
   showAppDialog("eventInfoOverlay", ".menu-close-btn");

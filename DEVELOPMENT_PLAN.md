@@ -163,6 +163,8 @@ Exit test: a new player can finish day one without opening a guide and can expla
 
 Exit test: players remember at least two customers and are curious about what happens next.
 
+Implementation status: the recurring cast, saved visit history, day themes, and two-day loan consequences are built. Blind-player memory and curiosity testing is still required before this slice is considered proven.
+
 ### Slice C — Meaningful improvements
 
 - Reduce upgrades to four visible, mechanically distinct choices.

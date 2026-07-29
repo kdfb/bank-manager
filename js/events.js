@@ -37,6 +37,25 @@ const INCIDENT_EVENTS = [
   },
 ];
 
+function communityFields(profile) {
+  if (!profile?.communityId || typeof BankCommunity === "undefined") return {};
+  return {
+    communityId: profile.communityId,
+    relationship: BankCommunity.relationship(bank, profile.communityId),
+  };
+}
+
+function rememberCommunity(profile, decision, context = {}) {
+  if (!profile?.communityId || typeof BankCommunity === "undefined") return null;
+  return BankCommunity.record(bank, profile.communityId, {
+    decision,
+    day: bank.day,
+    amount: context.amount,
+    purpose: context.purpose,
+    trustDelta: context.trustDelta,
+  });
+}
+
 // ── Event factories ───────────────────────────────────────────
 // Each returns an event object with: icon, eventType, title, details[],
 // approveLabel, denyLabel?, single, canApprove(), cantMsg?, onApprove(), onDeny()
@@ -70,6 +89,7 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: amount,
+    ...communityFields(profile),
     story: `${name} is asking the bank to back ${purpose}.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} credit`,
@@ -122,10 +142,22 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
       bank.stats.loansApproved++;
       bank.stats.totalIssued += amount;
       BankEconomy.applyTransactionFee(bank, fee, "loanFees");
+      rememberCommunity(profile, "loan-approved", {
+        amount, purpose, trustDelta: risk === "high" ? 2 : 1,
+      });
+      if (profile.communityId) {
+        BankCommunity.scheduleLoanFollowUp(bank, profile.communityId, "approved", { amount, purpose, risk });
+      }
       return { msg:`Loan of ${fmt(amount)} approved. ${fmt(fee)} fee earned. Reputation +${bump}.`, kind:"good" };
     },
     onDeny() {
       bank.stats.loansDenied++;
+      rememberCommunity(profile, "loan-denied", {
+        amount, purpose, trustDelta: risk === "low" ? -2 : risk === "medium" ? -1 : 0,
+      });
+      if (profile.communityId) {
+        BankCommunity.scheduleLoanFollowUp(bank, profile.communityId, "denied", { amount, purpose, risk });
+      }
       if (risk === "low") {
         bank.rep = Math.max(0, bank.rep - 2);
         return { msg:"Low-risk applicant turned away. Reputation −2.", kind:"warn" };
@@ -150,6 +182,7 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: amount,
+    ...communityFields(profile),
     story: `${who} wants to place ${fmt(amount)} with the bank.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} deposit`,
@@ -172,9 +205,11 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
       bank.cash     += amount;
       bank.deposits += amount;
       bank.rep = Math.min(100, bank.rep + 1);
+      rememberCommunity(profile, "deposit", { amount, trustDelta: 1 });
       return { msg:`Deposit of ${fmt(amount)} accepted. Reputation +1.`, kind:"good" };
     },
     onDeny() {
+      rememberCommunity(profile, "deposit", { amount, trustDelta: -1 });
       return { msg:`Deposit from ${who} declined.`, kind:"neutral" };
     },
   };
@@ -191,6 +226,7 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: openingDeposit + fee,
+    ...communityFields(profile),
     story: `${name} wants a dependable place for everyday money.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} account`,
@@ -214,10 +250,12 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
       bank.deposits += openingDeposit;
       BankEconomy.applyTransactionFee(bank, fee, "accountFees");
       bank.rep = Math.min(100, bank.rep + 1);
+      rememberCommunity(profile, "account", { amount: openingDeposit, trustDelta: 1 });
       return { msg:`Account opened for ${name}. ${fmt(fee)} fee earned.`, kind:"good" };
     },
     onDeny() {
       bank.rep = Math.max(0, bank.rep - 1);
+      rememberCommunity(profile, "account", { amount: openingDeposit, trustDelta: -1 });
       return { msg:`Account request from ${name} declined. Reputation −1.`, kind:"warn" };
     },
   };
@@ -234,6 +272,7 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: amount,
+    ...communityFields(profile),
     story: `${profile.name} needs ${fmt(amount)} from their savings today.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} withdrawal`,
@@ -273,12 +312,62 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
       bank.deposits  = Math.max(0, bank.deposits - amount);
       const fee = Math.max(1, Math.round(2 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier));
       BankEconomy.applyTransactionFee(bank, fee, "transactionFees");
+      rememberCommunity(profile, "withdrawal", { amount, trustDelta: 1 });
       return { msg:`Withdrawal of ${fmt(amount)} processed. ${fmt(fee)} fee earned.`, kind:"neutral" };
     },
     onDeny() {
       const penalty = (bank.upgrades?.atm || 0) > 0 ? 3 : 6;
       bank.rep = Math.max(0, bank.rep - penalty);
+      rememberCommunity(profile, "withdrawal", { amount, trustDelta: -2 });
       return { msg:`Refused withdrawal. Customer furious. Reputation -${penalty}.`, kind:"bad" };
+    },
+  };
+}
+
+function makeCommunityFollowUpEvent(followUp) {
+  const person = BankCommunity.customer(followUp.customerId);
+  const presentation = BankCommunity.followUpPresentation(bank, followUp);
+  const segment = BankMarket.SEGMENTS[person.segment];
+  const standing = presentation.standingDelta;
+  const relationship = BankCommunity.relationship(bank, person.id);
+  relationship.isReturning = true;
+  relationship.text = `Returning customer · Following up on your ${fmt(followUp.amount)} ${followUp.decision === "approved" ? "loan" : "decision"}`;
+  return {
+    icon: "🤝",
+    eventType: "Customer Follow-up",
+    title: person.name,
+    communityId: person.id,
+    communityFollowUpId: followUp.id,
+    relationship,
+    segmentId: person.segment,
+    segmentLabel: segment.label,
+    customerValue: 0,
+    story: presentation.story,
+    summary: {
+      purpose: presentation.decisionLabel,
+      amount: followUp.amount ? fmt(followUp.amount) : "—",
+      risk: standing > 0 ? "GOOD NEWS" : standing < 0 ? "CONSEQUENCE" : "UPDATE",
+      riskClass: standing > 0 ? "green" : standing < 0 ? "red" : "yellow",
+    },
+    details: [
+      { key: "Earlier request", val: followUp.purpose },
+      { key: "Your decision", val: presentation.decisionLabel },
+      { key: "Original amount", val: followUp.amount ? fmt(followUp.amount) : "—" },
+      { key: "Standing", val: standing ? `${standing > 0 ? "+" : ""}${standing}` : "No change", cls: standing > 0 ? "green" : standing < 0 ? "red" : "yellow" },
+    ],
+    approveLabel: "Hear the update",
+    denyLabel: "",
+    single: true,
+    canApprove: () => true,
+    onApprove() {
+      const resolved = BankCommunity.resolveFollowUp(bank, followUp.id);
+      return {
+        msg: resolved?.presentation.result || "Customer update recorded.",
+        kind: standing > 0 ? "good" : standing < 0 ? "warn" : "neutral",
+      };
+    },
+    onDeny() {
+      return this.onApprove();
     },
   };
 }
