@@ -18,7 +18,7 @@
     return RISK_PROFILES[risk] || RISK_PROFILES.medium;
   }
 
-  function createLoan({ id, name, principal, risk, annualRate, termDays, startDay }) {
+  function createLoan({ id, name, principal, risk, annualRate, termDays, startDay, reviewed = false }) {
     const safePrincipal = Math.max(0, Number(principal) || 0);
     const safeTerm = Math.max(1, Math.round(Number(termDays) || 1));
     const safeRate = Math.max(0, Number(annualRate) || 0);
@@ -40,6 +40,7 @@
       status: "current",
       daysLate: 0,
       missedPayments: 0,
+      reviewed: Boolean(reviewed),
     };
   }
 
@@ -64,6 +65,7 @@
         status: loan.status === "late" ? "late" : "current",
         daysLate: Math.max(0, Number(loan.daysLate) || 0),
         missedPayments: Math.max(0, Number(loan.missedPayments) || 0),
+        reviewed: Boolean(loan.reviewed),
       };
     }
 
@@ -93,6 +95,7 @@
       status: "current",
       daysLate: 0,
       missedPayments: 0,
+      reviewed: Boolean(loan?.reviewed),
     };
   }
 
@@ -126,7 +129,7 @@
       metrics.due += loan.scheduledPayment;
       const profile = riskProfile(loan.risk);
       const missedPaymentChance = Math.min(0.95,
-        profile.missedPaymentChance * (Number(options.missedPaymentMultiplier) || 1)
+        profile.missedPaymentChance * (loan.reviewed ? 0.75 : 1) * (Number(options.missedPaymentMultiplier) || 1)
       );
       if (random() < missedPaymentChance) {
         const wasCurrent = loan.status !== "late";
@@ -180,14 +183,14 @@
     const loans = (loanBook || []).map((loan, index) => migrateLoan(loan, day, index));
     const balance = loans.reduce((sum, loan) => sum + loan.balance, 0);
     const expectedLoss = loans.reduce((sum, loan) =>
-      sum + loan.balance * riskProfile(loan.risk).expectedLossRate, 0
+      sum + loan.balance * riskProfile(loan.risk).expectedLossRate * (loan.reviewed ? 0.75 : 1), 0
     );
     const scheduledNextDay = loans
       .filter(loan => loan.nextPaymentDay <= day + 1)
       .reduce((sum, loan) => sum + loan.scheduledPayment, 0);
     const expectedNextDay = loans
       .filter(loan => loan.nextPaymentDay <= day + 1)
-      .reduce((sum, loan) => sum + loan.scheduledPayment * (1 - riskProfile(loan.risk).missedPaymentChance), 0);
+      .reduce((sum, loan) => sum + loan.scheduledPayment * (1 - riskProfile(loan.risk).missedPaymentChance * (loan.reviewed ? 0.75 : 1)), 0);
     const countsByRisk = { low: 0, medium: 0, high: 0 };
     loans.forEach(loan => { countsByRisk[loan.risk] = (countsByRisk[loan.risk] || 0) + 1; });
     return {

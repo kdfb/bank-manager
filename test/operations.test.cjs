@@ -72,6 +72,18 @@ test("specialists only handle matching work at an available station", () => {
   assert.equal(Operations.selectStaffForEvent(bank, "Credit Application").id, "isaac-turner");
 });
 
+test("delegation removes routine repetition but preserves human decisions", () => {
+  const bank = bankFixture({
+    staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
+  });
+  assert.equal(Operations.selectStaffForEvent(bank, "Deposit Proposal").id, "mara-chen");
+  assert.equal(Operations.selectStaffForEvent(bank, "Customer Follow-up"), null);
+  assert.equal(Operations.selectStaffForEvent(bank, "Credit Application"), null);
+  const normal = Operations.serviceIntervalMs(bank, "Deposit Proposal");
+  bank.upgrades.teller_window = 1;
+  assert.ok(Operations.serviceIntervalMs(bank, "Deposit Proposal") < normal);
+});
+
 test("legacy employees migrate to assigned, trainable roster members", () => {
   const bank = bankFixture({ staff: [{ id: "mara-chen", name: "Mara Chen", dailyWage: 30 }] });
   Operations.migrateRoster(bank);

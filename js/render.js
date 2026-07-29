@@ -104,14 +104,14 @@ function renderStats() {
     strategyButton.setAttribute("aria-label", "Open regional strategy");
   }
   if (buildButton) {
-    buildButton.hidden = !features.building;
+    buildButton.hidden = true;
     buildButton.disabled = false;
     buildButton.textContent = "Build";
     buildButton.title = "Enter Build mode";
     buildButton.setAttribute("aria-label", "Enter build mode");
   }
   if (touchBuildButton) {
-    touchBuildButton.hidden = !features.building;
+    touchBuildButton.hidden = true;
     touchBuildButton.disabled = false;
     touchBuildButton.title = "Enter Build mode";
   }
@@ -163,6 +163,7 @@ function renderEndOfDayLegacy(loanIncome, depInt, overhead, dayDelta) {
         <span style="color:${bank.profit >= 0 ? "var(--green)" : "var(--red)"}">${fmt(bank.profit)}</span>
       </div>
     </div>
+    ${typeof renderEndOfDayReward === "function" ? renderEndOfDayReward() : ""}
     <div class="btn-row one-col">
       <button class="btn btn-purple" onclick="startNextDay()">Start ${gameDate(bank.day + 1)} →</button>
     </div>`;
@@ -229,6 +230,7 @@ function renderEndOfDay(report) {
         <div class="eod-row"><span class="key">Loan portfolio</span><span>${fmt(portfolio.balance)} outstanding · ${fmt(portfolio.expectedLoss)} expected loss</span></div>
       </div>
     </details>
+    ${typeof renderEndOfDayReward === "function" ? renderEndOfDayReward() : ""}
     <div class="btn-row one-col">
       <button class="btn btn-green" onclick="startNextDay()">Open for ${gameDate(bank.day + 1)} →</button>
     </div>`;

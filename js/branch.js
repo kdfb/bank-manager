@@ -322,7 +322,12 @@ function updateBranch(dt) {
 function maybeStaffServe() {
   if (!bank.staff?.length || decisionOpen || branchState.tellerLocked) return;
   const customer = frontReadyCustomer();
-  if (!customer || performance.now() < branchState.nextStaffServiceAt) return;
+  if (!customer) return;
+  if (!BankOperations.taskForEvent(customer.event.eventType)) {
+    openDecisionOverlay(customer.event, customer.id);
+    return;
+  }
+  if (performance.now() < branchState.nextStaffServiceAt) return;
   const member = BankOperations.selectStaffForEvent(bank, customer.event.eventType);
   if (!member) return;
   const choice = staffDecisionFor(customer.event, member);
@@ -1090,7 +1095,7 @@ function renderBranchStatus(force = false) {
   const staffing = BankOperations.staffingSummary(bank);
   const serviceModifier = BankWorld.modifiers(bank).serviceInterval;
   const serviceParts = [];
-  if (staffing.counter) serviceParts.push(`Counter ${(staffing.counterIntervalMs * serviceModifier / 1000).toFixed(1)}s`);
+  if (staffing.counter) serviceParts.push("Mara handles routine service · You decide every loan");
   if (staffing.loans) serviceParts.push(`Loans ${(staffing.loanIntervalMs * serviceModifier / 1000).toFixed(1)}s`);
   capacity.textContent = serviceParts.length
     ? serviceParts.join(" · ")
@@ -1236,11 +1241,12 @@ function startBranchDay() {
   branchState.nextStaffServiceAt = performance.now() + 3200;
   branchState.activeDecisionCustomerId = null;
   branchState.openForCustomers = true;
-  branchState.tellerLocked = true;
+  const hasCounterStaff = BankOperations.activeStaff(bank, "counter").length > 0;
+  branchState.tellerLocked = !hasCounterStaff;
   dayFinishQueued = false;
   decisionOpen = false;
-  keepPlayerAtTeller();
-  document.body.classList.add("at-teller");
+  if (branchState.tellerLocked) keepPlayerAtTeller();
+  document.body.classList.toggle("at-teller", branchState.tellerLocked);
   setDecisionLayerVisible(false);
   updateModeBanner();
   renderBranchStatus(true);

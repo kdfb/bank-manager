@@ -174,6 +174,8 @@ Implementation status: the recurring cast, saved visit history, day themes, and 
 
 Exit test: earning the first teller changes the rhythm and feels like a reward.
 
+Implementation status: the catalog now exposes only four purpose-built improvements; Mara delegates routine services while loans and relationship follow-ups stay manual; hiring and the first improvement are offered as day-end rewards; and the former policy, training, pricing, prestige, achievement, and telemetry walls are absent from the normal opening flow. A phone-sized playthrough verified the compact management screen and one-tap placement. Blind playtesting is still required to prove that the rhythm change feels rewarding.
+
 ### Slice D — Focused campaign
 
 - Build a sequence of local projects and customer stories.

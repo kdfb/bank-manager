@@ -238,6 +238,20 @@ test("named customers persist and loan choices return as later consequences", ()
   assert.match(render, /Returning faces/);
 });
 
+test("the first management unlock stays focused on delegation and four improvements", () => {
+  const html = readFileSync(join(root, "index.html"), "utf8");
+  const floor = readFileSync(join(root, "js", "floor.js"), "utf8");
+  const management = readFileSync(join(root, "js", "management.js"), "utf8");
+  const render = readFileSync(join(root, "js", "render.js"), "utf8");
+  assert.match(html, /id="achievementsPanel"[^>]*hidden/);
+  assert.match(html, /id="telemetryPanel"[^>]*hidden/);
+  assert.match(floor, /FOCUSED_UPGRADE_IDS[^\n]*teller_window[^\n]*risk_desk[^\n]*vault_upgrade[^\n]*lobby/);
+  assert.match(management, /Mara Chen runs the public counter/);
+  assert.match(management, /Loans and returning-customer follow-ups always come to you/);
+  assert.match(management, /function renderEndOfDayReward/);
+  assert.match(render, /renderEndOfDayReward/);
+});
+
 test("one modal owns focus while incompatible branch panels close each other", () => {
   const help = readFileSync(join(root, "js", "help.js"), "utf8");
   const branch = readFileSync(join(root, "js", "branch.js"), "utf8");

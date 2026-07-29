@@ -137,3 +137,11 @@ test("regional conditions can increase or reduce missed-payment pressure", () =>
   const stressedResult = Portfolio.processPortfolioDay([loan], 2, () => 0.05, { missedPaymentMultiplier: 1.5 });
   assert.equal(stressedResult.metrics.missedPayments, 1);
 });
+
+test("reviewed loans visibly reduce missed-payment and expected-loss risk", () => {
+  const plain = Portfolio.createLoan({ id: "plain", name: "Plain", principal: 1_000, risk: "medium", annualRate: 0.12, termDays: 12, startDay: 1 });
+  const reviewed = Portfolio.createLoan({ id: "reviewed", name: "Reviewed", principal: 1_000, risk: "medium", annualRate: 0.12, termDays: 12, startDay: 1, reviewed: true });
+  assert.equal(Portfolio.processPortfolioDay([plain], 2, () => 0.06).metrics.missedPayments, 1);
+  assert.equal(Portfolio.processPortfolioDay([reviewed], 2, () => 0.06).metrics.missedPayments, 0);
+  assert.ok(Portfolio.portfolioSummary([reviewed], 1).expectedLoss < Portfolio.portfolioSummary([plain], 1).expectedLoss);
+});

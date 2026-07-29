@@ -56,6 +56,14 @@ function rememberCommunity(profile, decision, context = {}) {
   });
 }
 
+function communityLobbyBonus(profile) {
+  if (!profile?.communityId || !bank.upgrades?.lobby || typeof BankCommunity === "undefined") return 0;
+  const returning = BankCommunity.relationship(bank, profile.communityId).isReturning;
+  if (!returning) return 0;
+  bank.rep = Math.min(100, bank.rep + 1);
+  return 1;
+}
+
 // ── Event factories ───────────────────────────────────────────
 // Each returns an event object with: icon, eventType, title, details[],
 // approveLabel, denyLabel?, single, canApprove(), cantMsg?, onApprove(), onDeny()
@@ -75,7 +83,8 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
   const rate    = rates[risk];
   const totalInt = amount * rate * (termMo / 12);
   const dailyPay = (amount + totalInt) / termDays;
-  const expectedLoss = amount * BankPortfolio.riskProfile(risk).expectedLossRate;
+  const reviewed = Boolean(bank.upgrades?.risk_desk);
+  const expectedLoss = amount * BankPortfolio.riskProfile(risk).expectedLossRate * (reviewed ? 0.75 : 1);
   const riskColour = { low:"green", medium:"yellow", high:"red" }[risk];
   const fee = Math.max(3, Math.round(amount * 0.01 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier));
   const denialStanding = risk === "low" ? 2 : 0;
@@ -106,6 +115,7 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
       { key:"Interest",    val: `${(rate*100).toFixed(0)}% annual → ${fmt(totalInt)} total` },
       { key:"Schedule",    val: `${termDays} daily payments of ${fmt(dailyPay)}` },
       { key:"Expected loss", val: fmt(expectedLoss), cls: riskColour },
+      ...(reviewed ? [{ key:"Loan review desk", val:"Risk reduced 25%", cls:"green" }] : []),
     ],
     approveLabel: "✅ Approve",
     denyLabel:    "❌ Deny",
@@ -135,6 +145,7 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
         annualRate: rate,
         termDays,
         startDay: bank.day,
+        reviewed,
       }));
       const analystBonus = risk === "high" && (bank.upgrades?.risk_desk || 0) > 0 ? 1 : 0;
       const bump = (risk === "low" ? 2 : 1) + analystBonus;
@@ -205,8 +216,9 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
       bank.cash     += amount;
       bank.deposits += amount;
       bank.rep = Math.min(100, bank.rep + 1);
+      const welcomeBonus = communityLobbyBonus(profile);
       rememberCommunity(profile, "deposit", { amount, trustDelta: 1 });
-      return { msg:`Deposit of ${fmt(amount)} accepted. Reputation +1.`, kind:"good" };
+      return { msg:`Deposit of ${fmt(amount)} accepted. Standing +${1 + welcomeBonus}.`, kind:"good" };
     },
     onDeny() {
       rememberCommunity(profile, "deposit", { amount, trustDelta: -1 });
@@ -250,8 +262,9 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
       bank.deposits += openingDeposit;
       BankEconomy.applyTransactionFee(bank, fee, "accountFees");
       bank.rep = Math.min(100, bank.rep + 1);
+      const welcomeBonus = communityLobbyBonus(profile);
       rememberCommunity(profile, "account", { amount: openingDeposit, trustDelta: 1 });
-      return { msg:`Account opened for ${name}. ${fmt(fee)} fee earned.`, kind:"good" };
+      return { msg:`Account opened for ${name}. ${fmt(fee)} fee earned${welcomeBonus ? " · returning neighbor welcomed" : ""}.`, kind:"good" };
     },
     onDeny() {
       bank.rep = Math.max(0, bank.rep - 1);
@@ -312,11 +325,12 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
       bank.deposits  = Math.max(0, bank.deposits - amount);
       const fee = Math.max(1, Math.round(2 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier));
       BankEconomy.applyTransactionFee(bank, fee, "transactionFees");
+      const welcomeBonus = communityLobbyBonus(profile);
       rememberCommunity(profile, "withdrawal", { amount, trustDelta: 1 });
-      return { msg:`Withdrawal of ${fmt(amount)} processed. ${fmt(fee)} fee earned.`, kind:"neutral" };
+      return { msg:`Withdrawal of ${fmt(amount)} processed. ${fmt(fee)} fee earned${welcomeBonus ? " · standing +1" : ""}.`, kind:"neutral" };
     },
     onDeny() {
-      const penalty = (bank.upgrades?.atm || 0) > 0 ? 3 : 6;
+      const penalty = bank.upgrades?.vault_upgrade ? 4 : (bank.upgrades?.atm || 0) > 0 ? 3 : 6;
       bank.rep = Math.max(0, bank.rep - penalty);
       rememberCommunity(profile, "withdrawal", { amount, trustDelta: -2 });
       return { msg:`Refused withdrawal. Customer furious. Reputation -${penalty}.`, kind:"bad" };

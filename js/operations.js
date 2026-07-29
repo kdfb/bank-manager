@@ -99,7 +99,7 @@
   }
 
   function taskForEvent(eventType) {
-    if (eventType === "World Event" || eventType === "Branch Incident") return null;
+    if (eventType === "World Event" || eventType === "Branch Incident" || eventType === "Customer Follow-up") return null;
     return eventType === "Credit Application" ? "loans" : "counter";
   }
 
@@ -140,7 +140,8 @@
     const workers = activeStaff(bank, assignment);
     if (!workers.length) return Infinity;
     const throughputPerMs = workers.reduce((sum, member) => sum + (1 / staffServiceMs(member)), 0);
-    return Math.max(1_300, Math.round(1 / throughputPerMs));
+    const expressMultiplier = assignment === "counter" && bank.upgrades?.teller_window ? 0.7 : 1;
+    return Math.max(1_300, Math.round((1 / throughputPerMs) * expressMultiplier));
   }
 
   function trainingCost(member) {

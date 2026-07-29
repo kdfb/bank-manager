@@ -76,10 +76,8 @@
     <div class="control-hints" id="controlHints" aria-label="Controls">
       <span class="keyboard-control"><kbd>WASD</kbd> Move</span>
       <span class="keyboard-control"><kbd>E</kbd> Interact</span>
-      <span class="keyboard-control"><kbd>B</kbd> Build</span>
       <span class="gamepad-control"><kbd>LS</kbd> Move</span>
       <span class="gamepad-control"><kbd>A</kbd> Interact</span>
-      <span class="gamepad-control"><kbd>X</kbd> Build</span>
     </div>
     <div class="controller-status" id="controllerStatus" role="status" aria-live="polite"></div>
     <aside class="achievement-toast" id="achievementToast" role="status" aria-live="polite" aria-atomic="true">
@@ -146,12 +144,8 @@
       <div class="menu-divider"></div>
       <div class="menu-section-label">Audio, Accessibility & Guidance</div>
       <div id="settingsPanel" class="settings-panel"></div>
-      <div class="menu-divider"></div>
-      <div class="menu-section-label">Achievements</div>
-      <div id="achievementsPanel" class="achievements-panel"></div>
-      <div class="menu-divider"></div>
-      <div class="menu-section-label">Playtest Balance Lab</div>
-      <div id="telemetryPanel" class="telemetry-panel"></div>
+      <div id="achievementsPanel" class="achievements-panel" hidden></div>
+      <div id="telemetryPanel" class="telemetry-panel" hidden></div>
       <div class="menu-divider"></div>
       <div id="restartArea">
         <button class="btn btn-dark menu-full-btn" onclick="confirmRestart()">Restart New Game</button>
@@ -173,8 +167,8 @@
     <div class="overlay-box operations-box">
       <div class="menu-header">
         <div>
-          <div class="panel-kicker">Management overlay</div>
-          <span class="menu-title" id="operationsTitle">Operations</span>
+          <div class="panel-kicker">Your bank</div>
+          <span class="menu-title" id="operationsTitle">Team & commitments</span>
         </div>
         <button class="menu-close-btn" onclick="closeOperations()" aria-label="Close operations">×</button>
       </div>
