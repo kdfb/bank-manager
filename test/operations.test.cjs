@@ -12,8 +12,12 @@ function bankFixture(overrides = {}) {
 }
 
 test("waiting-area upgrades extend customer patience", () => {
-  assert.equal(Operations.patienceSeconds(bankFixture()), 34);
-  assert.equal(Operations.patienceSeconds(bankFixture({ upgrades: { lobby: 2 } })), 58);
+  assert.equal(Operations.patienceSeconds(bankFixture()), 60);
+  assert.equal(Operations.patienceSeconds(bankFixture({ upgrades: { lobby: 2 } })), 84);
+});
+
+test("a focused day contains five appointments", () => {
+  assert.equal(Operations.dailyAppointmentTarget(bankFixture()), 5);
 });
 
 test("queue health reports wait pressure and at-risk customers", () => {
@@ -23,9 +27,9 @@ test("queue health reports wait pressure and at-risk customers", () => {
     { arrivedAt: 20_000, state: "queued" },
     { arrivedAt: 1_000, state: "leaving" },
   ];
-  const health = Operations.queueHealth(customers, 30_000, bank);
+  const health = Operations.queueHealth(customers, 50_000, bank);
   assert.equal(health.count, 2);
-  assert.equal(health.longestWait, 30);
+  assert.equal(health.longestWait, 50);
   assert.equal(health.atRisk, 1);
 });
 
@@ -80,29 +84,19 @@ test("legacy employees migrate to assigned, trainable roster members", () => {
 
 test("branch objectives advance through the operator-to-manager path", () => {
   assert.equal(Operations.currentObjective(bankFixture(), 1_000).step, 1);
-  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 2 } }), 1_000).step, 2);
-  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 3 } }), 1_000).step, 3);
+  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 5 } }), 1_000).step, 2);
+  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 5 } }), 1_200).step, 3);
   assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 3 },
+    stats: { customersServed: 10 },
+  }), 1_200).step, 4);
+  assert.equal(Operations.currentObjective(bankFixture({
+    stats: { customersServed: 10 },
     staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
-  }), 1_000).step, 4);
+  }), 1_200).step, 5);
   assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 3 },
+    stats: { customersServed: 10 },
     staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
     upgrades: { lobby: 1 },
-  }), 1_000).step, 5);
-  assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 3 },
-    staff: [Operations.normalizeStaffMember({ id: "mara-chen", level: 2 })],
-    upgrades: { lobby: 1 },
-  }), 1_000).step, 6);
-  assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 3 },
-    staff: [
-      Operations.normalizeStaffMember({ id: "mara-chen", level: 2 }),
-      Operations.normalizeStaffMember({ id: "isaac-turner", assignment: "loans" }),
-    ],
-    upgrades: { lobby: 1, risk_desk: 1 },
   }), 1_200).complete, true);
 });
 
@@ -119,7 +113,7 @@ test("management systems unlock in a teller-to-executive sequence", () => {
 
   const operator = Operations.featureAvailability(bankFixture({
     day: 2, cash: 5_000, deposits: 3_000, prestigeLevel: 0,
-    stats: { customersServed: 3, loansApproved: 1 },
+    stats: { customersServed: 10, loansApproved: 1 },
   }));
   assert.equal(operator.stage, "Operator");
   assert.equal(operator.staffing, true);
@@ -128,7 +122,7 @@ test("management systems unlock in a teller-to-executive sequence", () => {
   assert.equal(operator.pricing, false);
 
   const executive = Operations.featureAvailability(bankFixture({
-    day: 5, cash: 5_000, deposits: 3_000, prestigeLevel: 1,
+    day: 6, cash: 5_000, deposits: 3_000, prestigeLevel: 1,
     stats: { customersServed: 12 }, staff: [{ id: "mara-chen" }],
     campaign: { branches: [{}, {}] },
   }));

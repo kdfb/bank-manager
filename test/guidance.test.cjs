@@ -18,24 +18,24 @@ function bankFixture(overrides = {}) {
   };
 }
 
-test("new banks receive the teller-first contextual guidance", () => {
+test("new banks receive the five-appointment contextual guidance", () => {
   const bank = bankFixture();
   assert.equal(Guidance.next(bank).id, "welcome");
   Guidance.markSeen(bank, "welcome");
   assert.equal(Guidance.next(bank), null);
 });
 
-test("guidance follows financial, staffing, and regional progression", () => {
+test("guidance stays focused on finance, staffing, and the loan book", () => {
   const bank = bankFixture({
     day: 5,
     loansOut: 400,
     loanBook: [{ id: "loan" }],
     prestigeLevel: 1,
-    stats: { customersServed: 6, loansApproved: 1 },
+    stats: { customersServed: 10, loansApproved: 1 },
     campaign: { branches: [{ id: "hq" }, { id: "mesa" }] },
   });
   const ids = Guidance.available(bank).map(tip => tip.id);
-  assert.deepEqual(ids, ["liquidity", "staffing", "portfolio", "prestige", "pricing", "policies", "travel"]);
+  assert.deepEqual(ids, ["liquidity", "staffing", "portfolio"]);
   assert.equal(Guidance.next(bank).id, "liquidity");
   Guidance.markSeen(bank, "liquidity");
   assert.equal(Guidance.next(bank).id, "staffing");

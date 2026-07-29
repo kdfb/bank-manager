@@ -204,6 +204,23 @@ test("mobile play keeps secondary actions compact and supports persistent camera
   assert.match(settings, /Math\.max\(0\.8, Math\.min\(2\.2/);
 });
 
+test("the opening day is a focused five-appointment banking loop", () => {
+  const game = readFileSync(join(root, "js", "game.js"), "utf8");
+  const events = readFileSync(join(root, "js", "events.js"), "utf8");
+  const render = readFileSync(join(root, "js", "render.js"), "utf8");
+  const css = readFileSync(join(root, "css", "style.css"), "utf8");
+  assert.match(game, /function makeOpeningDayEvent/);
+  for (const customer of ["Carmen Reyes", "Green Valley Farm", "Hiro Tanaka", "Copper Ridge Crew", "Blue Peak Outfitters"]) {
+    assert.match(game, new RegExp(customer));
+  }
+  assert.match(events, /single:\s*true/);
+  assert.match(events, /choicePreview/);
+  assert.match(render, /No strategic tradeoff/);
+  assert.match(render, /class="choice-grid"/);
+  assert.match(render, /class="report-details"/);
+  assert.match(css, /body\.decision-open \.interaction-prompt/);
+});
+
 test("one modal owns focus while incompatible branch panels close each other", () => {
   const help = readFileSync(join(root, "js", "help.js"), "utf8");
   const branch = readFileSync(join(root, "js", "branch.js"), "utf8");

@@ -1469,7 +1469,8 @@ body.modal-open .guidance-card { display: none !important; }
 body.decision-open .guidance-card,
 body.decision-open .branch-status,
 body.decision-open .mode-banner,
-body.decision-open .control-hints { display: none !important; }
+body.decision-open .control-hints,
+body.decision-open .interaction-prompt { display: none !important; }
 
 .overlay {
   padding:
@@ -1833,4 +1834,130 @@ body.modal-open .zoom-controls { display: none !important; }
   .interaction-prompt { right: auto; bottom: 88px; left: 50%; width: 210px; transform: translateX(-50%); font-size: 9px; text-align: center; }
   .build-panel,
   .ledger-panel { top: 94px; right: 100px; bottom: 8px; left: 120px; width: auto; }
+}
+
+/* Focused first-session presentation: show only information that changes a decision. */
+[hidden] { display: none !important; }
+
+.mobile-bank-date {
+  display: block;
+  margin-top: 2px;
+  color: #bca98e;
+  font-size: 9px;
+  letter-spacing: .04em;
+}
+
+.stat-date,
+.stat-clock,
+.stat-loans,
+.stat-deposits,
+.stat-debt { display: none !important; }
+
+.desk-ledger-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.event-story {
+  margin: 0;
+  padding: 11px 14px 3px;
+  color: #4f3927;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.routine-service {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 9px 12px 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(42, 91, 59, .22);
+  border-radius: 6px;
+  background: rgba(82, 137, 91, .11);
+  color: #45604b;
+  font-size: 10px;
+}
+
+.routine-service strong { color: #2e5739; }
+.event-actions { align-items: stretch; }
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px 4px;
+}
+
+.choice-card {
+  display: grid;
+  align-content: start;
+  min-height: 118px;
+  padding: 11px;
+  border: 1px solid rgba(66, 44, 27, .25);
+  border-radius: 7px;
+  background: rgba(255, 250, 233, .56);
+  color: #2e2117;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease;
+}
+
+.choice-card:hover:not(:disabled) { transform: translateY(-2px); border-color: #815a32; }
+.choice-card:active:not(:disabled) { transform: translateY(0); }
+.choice-card:disabled { opacity: .48; cursor: not-allowed; }
+.choice-card.safe { border-color: rgba(60, 112, 73, .42); background: rgba(93, 148, 102, .13); }
+.choice-card.risk { border-color: rgba(149, 74, 51, .42); background: rgba(162, 79, 55, .12); }
+.choice-card.tradeoff { border-color: rgba(170, 119, 45, .45); background: rgba(190, 136, 51, .12); }
+.choice-card.balanced { border-color: rgba(58, 107, 127, .42); background: rgba(74, 132, 155, .12); }
+.choice-card span { color: #7a6044; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.choice-card strong { margin-top: 5px; font-size: 13px; line-height: 1.2; }
+.choice-card small { margin-top: 7px; color: #654c36; font-size: 10px; line-height: 1.4; }
+
+.event-more-link {
+  display: block;
+  margin: 3px auto 8px;
+  padding: 5px 9px;
+  border: 0;
+  background: transparent;
+  color: #695137;
+  font-size: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.day-result { margin: 12px; padding: 12px; border-radius: 7px; background: rgba(255,255,255,.28); }
+.day-result > span,
+.day-summary-grid span,
+.next-obligation span { display: block; color: #765d43; font-size: 9px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.day-result > strong { display: block; margin-top: 3px; font-size: 26px; }
+.day-result p { margin: 5px 0 0; color: #614a35; font-size: 11px; line-height: 1.4; }
+.day-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0 12px; }
+.day-summary-grid > div { padding: 8px; border: 1px solid rgba(38,23,13,.15); border-radius: 5px; background: rgba(255,255,255,.2); }
+.day-summary-grid strong { display: block; margin-top: 3px; font-size: 13px; }
+.next-obligation { margin: 8px 12px; padding: 9px 10px; border-left: 3px solid #b4833e; background: rgba(181,132,62,.1); }
+.next-obligation strong { display: block; margin-top: 3px; font-size: 11px; }
+.report-details { margin: 4px 12px 0; border-top: 1px solid rgba(38,23,13,.18); }
+.report-details summary { padding: 9px 0; color: #684e34; font-size: 10px; font-weight: 800; cursor: pointer; }
+
+body.at-teller .control-hints { display: none; }
+
+@media (max-width: 760px) {
+  .hud-actions { grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); }
+  .desk-ledger-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.at-teller .touch-dpad { visibility: hidden; pointer-events: none; }
+  .desk-event-layer { width: min(430px, calc(100vw - 12px)); }
+  .event-story { padding: 10px 12px 2px; font-size: 13px; }
+  .choice-grid { grid-template-columns: 1fr; gap: 6px; padding-top: 8px; }
+  .choice-card { min-height: 0; padding: 10px; }
+  .choice-card small { margin-top: 5px; }
+  .day-result { margin: 9px 10px; }
+  .day-summary-grid { margin: 0 10px; }
+  .next-obligation, .report-details { margin-right: 10px; margin-left: 10px; }
+}
+
+@media (max-width: 900px) and (max-height: 500px) {
+  .desk-ledger-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.at-teller .touch-dpad { visibility: hidden; pointer-events: none; }
 }

@@ -89,25 +89,35 @@ function renderStats() {
     r >= 50 ? "var(--green)" : r >= 30 ? "var(--yellow)" : "var(--red)";
 
   const features = BankOperations.featureAvailability(bank);
+  const operationsButton = document.getElementById("operationsBtn");
   const strategyButton = document.getElementById("strategyBtn");
   const buildButton = document.getElementById("buildModeBtn");
   const touchBuildButton = document.getElementById("touchBuildBtn");
+  const ledgerButton = document.getElementById("ledgerToggleBtn");
+  const mobileLedgerButton = document.getElementById("mobileLedgerBtn");
+  const hasCustomerHistory = (bank.stats?.customersServed || 0) > 0;
+  if (operationsButton) operationsButton.hidden = !features.staffing;
   if (strategyButton) {
-    strategyButton.disabled = !features.regional;
-    strategyButton.textContent = features.regional ? "Regions" : "Regions 🔒";
-    strategyButton.title = features.regional ? "Open the regional strategy desk" : "Unlocks at Trusted Institution prestige";
-    strategyButton.setAttribute("aria-label", features.regional ? "Open regional strategy" : "Regional strategy locked until Trusted Institution prestige");
+    strategyButton.hidden = !features.regional;
+    strategyButton.disabled = false;
+    strategyButton.textContent = "Regions";
+    strategyButton.title = "Open the regional strategy desk";
+    strategyButton.setAttribute("aria-label", "Open regional strategy");
   }
   if (buildButton) {
-    buildButton.disabled = !features.building;
-    buildButton.textContent = features.building ? "Build" : "Build 🔒";
-    buildButton.title = features.building ? "Enter Build mode" : "Unlocks after serving three customers";
-    buildButton.setAttribute("aria-label", features.building ? "Enter build mode" : "Build mode locked until three customers are served");
+    buildButton.hidden = !features.building;
+    buildButton.disabled = false;
+    buildButton.textContent = "Build";
+    buildButton.title = "Enter Build mode";
+    buildButton.setAttribute("aria-label", "Enter build mode");
   }
   if (touchBuildButton) {
-    touchBuildButton.disabled = !features.building;
-    touchBuildButton.title = features.building ? "Enter Build mode" : "Build mode unlocks after three customers";
+    touchBuildButton.hidden = !features.building;
+    touchBuildButton.disabled = false;
+    touchBuildButton.title = "Enter Build mode";
   }
+  if (ledgerButton) ledgerButton.hidden = !hasCustomerHistory;
+  if (mobileLedgerButton) mobileLedgerButton.hidden = !hasCustomerHistory;
 
   const fill = document.getElementById("repFill");
   fill.style.width      = `${r}%`;
@@ -163,10 +173,6 @@ function renderEndOfDayLegacy(loanIncome, depInt, overhead, dayDelta) {
 function renderEndOfDay(report) {
   const { loanIncome, depInt, rent, wages, defaults, debtPayment, dayDelta } = report;
   const cashChange = Number.isFinite(report.cashChange) ? report.cashChange : 0;
-  const worldReport = report.world || { conditionsToday: [], expiredConditions: [], events: [] };
-  const segmentResults = Object.entries(bank.dayMetrics.segmentResults || {})
-    .filter(([, result]) => result.served || result.lost)
-    .map(([id, result]) => `${BankMarket.SEGMENTS[id]?.label || id}: ${result.served} served${result.lost ? `, ${result.lost} lost` : ""}`);
   const loanMetrics = report.loanMetrics || {
     due: loanIncome,
     received: loanIncome,
@@ -178,13 +184,17 @@ function renderEndOfDay(report) {
   const portfolio = report.portfolio || BankPortfolio.portfolioSummary(bank.loanBook, bank.day);
   const card = document.getElementById("eventCard");
   const nextDebt = BankEconomy.nextDebtPayment({ ...bank, day: bank.day + 1 });
-  const averageWait = bank.dayMetrics.customersServed
-    ? bank.dayMetrics.totalWaitSeconds / bank.dayMetrics.customersServed
-    : 0;
   decisionOpen = true;
   setDecisionLayerVisible(true);
   const deltaColor = dayDelta >= 0 ? "var(--green)" : "var(--red)";
   const deltaSign = dayDelta >= 0 ? "+" : "";
+  const mainCause = defaults > 0
+    ? `${fmt(defaults)} was lost to loan defaults.`
+    : loanMetrics.interestIncome > rent + wages + depInt
+      ? "Loan income covered the bank's daily costs."
+      : bank.dayMetrics.fees > 0
+        ? `Customer service earned ${fmt(bank.dayMetrics.fees)} in fees.`
+        : "Rent and operating costs were the day's largest pressure.";
   card.innerHTML = `
     <div class="event-head">
       <div class="event-icon">📊</div>
@@ -193,44 +203,35 @@ function renderEndOfDay(report) {
         <div class="title">${gameDate(bank.day)} Report</div>
       </div>
     </div>
-    <div class="event-body eod-body">
-      <div class="eod-row"><span class="key">Loan payments received</span><span style="color:var(--green)">+${fmt(loanMetrics.received)} of ${fmt(loanMetrics.due)} due</span></div>
-      <div class="eod-row"><span class="key">Loan interest earned</span><span style="color:var(--green)">+${fmt(loanMetrics.interestIncome)}</span></div>
-      ${loanMetrics.missedPayments ? `<div class="eod-row"><span class="key">Missed loan payments</span><span style="color:var(--red)">${loanMetrics.missedPayments} (${loanMetrics.newDelinquencies} newly late)</span></div>` : ""}
-      <div class="eod-row"><span class="key">Fees earned</span><span style="color:var(--green)">+${fmt(bank.dayMetrics.fees)}</span></div>
-      ${bank.dayMetrics.eventIncome ? `<div class="eod-row"><span class="key">Event and underwriting income</span><span style="color:var(--green)">+${fmt(bank.dayMetrics.eventIncome)}</span></div>` : ""}
-      ${bank.dayMetrics.eventCosts ? `<div class="eod-row"><span class="key">Event and response costs</span><span style="color:var(--red)">-${fmt(bank.dayMetrics.eventCosts)}</span></div>` : ""}
-      ${bank.dayMetrics.expansionCosts ? `<div class="eod-row"><span class="key">Branch expansion costs</span><span style="color:var(--red)">-${fmt(bank.dayMetrics.expansionCosts)}</span></div>` : ""}
-      <div class="eod-row"><span class="key">Deposit interest</span><span style="color:var(--red)">-${fmt(depInt)}</span></div>
-      ${report.pricing ? `<div class="eod-row"><span class="key">Pricing posture</span><span>${BankCampaign.DEPOSIT_PRICING[report.pricing.depositPricing]?.label || "Market Rate"} · ${BankCampaign.FEE_PRICING[report.pricing.feePricing]?.label || "Standard Fees"}</span></div>` : ""}
-      <div class="eod-row"><span class="key">Rent & operations</span><span style="color:var(--red)">-${fmt(rent)}</span></div>
-      <div class="eod-row"><span class="key">Staff wages</span><span style="color:var(--red)">-${fmt(wages)}</span></div>
-      ${defaults > 0 ? `<div class="eod-row"><span class="key">Loan defaults</span><span style="color:var(--red)">-${fmt(defaults)}</span></div>` : ""}
-      ${debtPayment > 0 ? `<div class="eod-row"><span class="key">Debt principal paid</span><span style="color:var(--yellow)">-${fmt(debtPayment)}</span></div>` : ""}
-      <div class="eod-row report-total">
-        <span class="key">Net change</span>
-        <span style="color:${deltaColor}">${deltaSign}${fmt(dayDelta)}</span>
-      </div>
-      <div class="eod-row"><span class="key">Cash movement</span><span style="color:${cashChange >= 0 ? "var(--green)" : "var(--red)"}">${cashChange >= 0 ? "+" : ""}${fmt(cashChange)}</span></div>
-      <div class="eod-row"><span class="key">Customers served</span><span>${bank.dayMetrics.customersServed} (${bank.dayMetrics.staffServed} delegated)</span></div>
-      ${bank.dayMetrics.worldEventsResolved ? `<div class="eod-row"><span class="key">Strategic decisions</span><span>${bank.dayMetrics.worldEventsResolved}</span></div>` : ""}
-      ${segmentResults.length ? `<div class="eod-row"><span class="key">Customer segments</span><span>${segmentResults.join(" · ")}</span></div>` : ""}
-      <div class="eod-row"><span class="key">Customers lost</span><span style="color:${bank.dayMetrics.customersLost ? "var(--red)" : "inherit"}">${bank.dayMetrics.customersLost}</span></div>
-      <div class="eod-row"><span class="key">Average wait</span><span>${Math.round(averageWait)}s · peak queue ${bank.dayMetrics.maxQueue}</span></div>
-      <div class="eod-row"><span class="key">Loan portfolio</span><span>${fmt(portfolio.balance)} outstanding · ${fmt(portfolio.expectedLoss)} expected loss</span></div>
-      <div class="eod-row"><span class="key">Next expected loan inflow</span><span>${fmt(portfolio.expectedNextDay)} from ${portfolio.count} active</span></div>
-      ${worldReport.events.map(entry => `<div class="eod-row"><span class="key">${entry.eventTitle}</span><span>${entry.choiceLabel}</span></div>`).join("")}
-      ${worldReport.conditionsToday.length ? `<div class="eod-row"><span class="key">Conditions affecting today</span><span>${worldReport.conditionsToday.map(condition => `${condition.label} (${condition.remainingDays}d)`).join(" · ")}</span></div>` : ""}
-      ${worldReport.expiredConditions.length ? `<div class="eod-row"><span class="key">Conditions ended</span><span>${worldReport.expiredConditions.join(" · ")}</span></div>` : ""}
-      ${(report.prestigePromotions || []).map(tier => `<div class="eod-row"><span class="key">Prestige advanced</span><span>${tier.title} · ${tier.unlock}</span></div>`).join("")}
-      ${report.network?.results?.length ? `<div class="eod-row"><span class="key">Regional branch profit</span><span style="color:${report.network.profit >= 0 ? "var(--green)" : "var(--red)"}">${report.network.profit >= 0 ? "+" : ""}${fmt(report.network.profit)} from ${report.network.results.length} branch${report.network.results.length === 1 ? "" : "es"}</span></div>` : ""}
-      ${(report.network?.competition?.actions || []).map(action => `<div class="eod-row"><span class="key">${BankCampaign.RIVAL_DEFINITIONS[action.rivalId].name}</span><span>${action.title} in ${BankCampaign.REGIONS[action.regionId].label}${action.playerLoss ? ` · -${action.playerLoss.toFixed(2)}% local share` : ""}</span></div>`).join("")}
-      ${report.campaignProgress ? `<div class="eod-row"><span class="key">Campaign objective</span><span>${report.campaignProgress.complete ? "Legacy secured" : report.campaignProgress.current.title}</span></div>` : ""}
-      <div class="eod-row"><span class="key">Market share</span><span>${bank.marketShare.toFixed(1)}% vs ${bank.rivalShare.toFixed(1)}%</span></div>
-      <div class="eod-row"><span class="key">Upcoming debt payment</span><span>${fmt(nextDebt.amount)} in ${nextDebt.dueInDays} day(s)</span></div>
+    <div class="day-result ${dayDelta >= 0 ? "positive" : "negative"}">
+      <span>Today's result</span>
+      <strong style="color:${deltaColor}">${deltaSign}${fmt(dayDelta)}</strong>
+      <p>${mainCause}</p>
     </div>
+    <div class="day-summary-grid">
+      <div><span>Closing cash</span><strong>${fmt(bank.cash)}</strong></div>
+      <div><span>Net capital</span><strong>${fmt(netWorth())}</strong></div>
+      <div><span>Appointments</span><strong>${bank.dayMetrics.customersServed} served</strong></div>
+      <div><span>Customers lost</span><strong>${bank.dayMetrics.customersLost}</strong></div>
+    </div>
+    <div class="next-obligation"><span>Next known obligation</span><strong>${fmt(nextDebt.amount)} debt payment in ${nextDebt.dueInDays} day${nextDebt.dueInDays === 1 ? "" : "s"}</strong></div>
+    <details class="report-details">
+      <summary>View full ledger</summary>
+      <div class="event-body eod-body">
+        <div class="eod-row"><span class="key">Loan payments received</span><span>+${fmt(loanMetrics.received)} of ${fmt(loanMetrics.due)} due</span></div>
+        <div class="eod-row"><span class="key">Loan interest earned</span><span>+${fmt(loanMetrics.interestIncome)}</span></div>
+        <div class="eod-row"><span class="key">Fees earned</span><span>+${fmt(bank.dayMetrics.fees)}</span></div>
+        <div class="eod-row"><span class="key">Deposit interest</span><span>-${fmt(depInt)}</span></div>
+        <div class="eod-row"><span class="key">Rent & operations</span><span>-${fmt(rent)}</span></div>
+        <div class="eod-row"><span class="key">Staff wages</span><span>-${fmt(wages)}</span></div>
+        ${defaults ? `<div class="eod-row"><span class="key">Loan defaults</span><span>-${fmt(defaults)}</span></div>` : ""}
+        ${debtPayment ? `<div class="eod-row"><span class="key">Debt principal paid</span><span>-${fmt(debtPayment)}</span></div>` : ""}
+        <div class="eod-row"><span class="key">Cash movement</span><span>${cashChange >= 0 ? "+" : ""}${fmt(cashChange)}</span></div>
+        <div class="eod-row"><span class="key">Loan portfolio</span><span>${fmt(portfolio.balance)} outstanding · ${fmt(portfolio.expectedLoss)} expected loss</span></div>
+      </div>
+    </details>
     <div class="btn-row one-col">
-      <button class="btn btn-purple" onclick="startNextDay()">Start ${gameDate(bank.day + 1)} →</button>
+      <button class="btn btn-green" onclick="startNextDay()">Open for ${gameDate(bank.day + 1)} →</button>
     </div>`;
   document.getElementById("dots").innerHTML = "";
 }
@@ -306,18 +307,27 @@ function renderEvent() {
   ).join("");
 
   const cantHtml = (!ok && ev.cantMsg) ? `<div class="cant-fund">${ev.cantMsg}</div>` : "";
-
+  const preview = ev.choicePreview || {};
   const btnsHtml = ev.single
-    ? `<div class="btn-row two-col">
-         <button class="btn btn-small btn-blue" onclick="openEventInfo()">More Info</button>
+    ? `<div class="routine-service"><span>Routine service</span><strong>No strategic tradeoff</strong></div>
+       <div class="btn-row two-col event-actions">
+         <button class="btn btn-small btn-blue" onclick="openEventInfo()">View details</button>
          <button class="btn btn-green" onclick="${approveAction}">${ev.approveLabel}</button>
        </div>`
     : `${cantHtml}
-       <div class="btn-row three-col">
-         <button class="btn btn-small btn-blue" onclick="openEventInfo()">More Info</button>
-         <button class="btn btn-dark"  onclick="${denyAction}">${ev.denyLabel}</button>
-         <button class="btn btn-green" onclick="${approveAction}" ${!ok?"disabled":""}>${ev.approveLabel}</button>
-       </div>`;
+       <div class="choice-grid" aria-label="Decision options">
+         <button class="choice-card ${preview.deny?.tone || "neutral"}" onclick="${denyAction}">
+           <span>${preview.deny?.title || "Decline"}</span>
+           <strong>${ev.denyLabel}</strong>
+           <small>${preview.deny?.summary || "Keep the bank's cash and avoid the immediate risk."}</small>
+         </button>
+         <button class="choice-card ${preview.approve?.tone || "balanced"}" onclick="${approveAction}" ${!ok?"disabled":""}>
+           <span>${preview.approve?.title || "Accept"}</span>
+           <strong>${ev.approveLabel}</strong>
+           <small>${preview.approve?.summary || "Accept the immediate cost and its possible reward."}</small>
+         </button>
+       </div>
+       <button class="event-more-link" onclick="openEventInfo()">Review the full file</button>`;
 
   card.innerHTML = `
     <div class="event-head">
@@ -327,6 +337,7 @@ function renderEvent() {
         <div class="title">${ev.title}</div>
       </div>
     </div>
+    <p class="event-story">${ev.story || `${ev.title} has come to the counter.`}</p>
     <div class="event-body">${detailsHtml}</div>
     ${btnsHtml}`;
 

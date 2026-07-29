@@ -58,6 +58,8 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
   const dailyPay = (amount + totalInt) / termDays;
   const expectedLoss = amount * BankPortfolio.riskProfile(risk).expectedLossRate;
   const riskColour = { low:"green", medium:"yellow", high:"red" }[risk];
+  const fee = Math.max(3, Math.round(amount * 0.01 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier));
+  const denialStanding = risk === "low" ? 2 : 0;
 
   return {
     icon: "📝",
@@ -68,6 +70,7 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: amount,
+    story: `${name} is asking the bank to back ${purpose}.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} credit`,
       amount: fmt(amount),
@@ -86,6 +89,18 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
     ],
     approveLabel: "✅ Approve",
     denyLabel:    "❌ Deny",
+    choicePreview: {
+      approve: {
+        title: "Back the plan",
+        summary: `${fmt(amount)} leaves the vault today. Earn up to ${fmt(totalInt + fee)} if the loan is repaid.`,
+        tone: risk === "high" ? "risk" : risk === "low" ? "safe" : "balanced",
+      },
+      deny: {
+        title: "Protect the vault",
+        summary: denialStanding ? `Keep the cash, but lose ${denialStanding} standing with a strong applicant.` : "Keep the cash and avoid this credit risk.",
+        tone: denialStanding ? "tradeoff" : "safe",
+      },
+    },
     single: false,
     canApprove: () => bank.cash >= amount,
     cantMsg: "Insufficient funds in the vault.",
@@ -106,8 +121,6 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
       bank.rep = Math.min(100, bank.rep + bump);
       bank.stats.loansApproved++;
       bank.stats.totalIssued += amount;
-      const pricing = BankCampaign.activePricingEffects(bank);
-      const fee = Math.max(3, Math.round(amount * 0.01 * BankMarket.prestigeModifiers(bank).feeMultiplier * pricing.feeMultiplier));
       BankEconomy.applyTransactionFee(bank, fee, "loanFees");
       return { msg:`Loan of ${fmt(amount)} approved. ${fmt(fee)} fee earned. Reputation +${bump}.`, kind:"good" };
     },
@@ -137,6 +150,7 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: amount,
+    story: `${who} wants to place ${fmt(amount)} with the bank.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} deposit`,
       amount: fmt(amount),
@@ -152,7 +166,7 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
     ],
     approveLabel: "✅ Accept",
     denyLabel:    "❌ Decline",
-    single: false,
+    single: true,
     canApprove: () => true,
     onApprove() {
       bank.cash     += amount;
@@ -177,6 +191,7 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: openingDeposit + fee,
+    story: `${name} wants a dependable place for everyday money.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} account`,
       amount: fmt(openingDeposit),
@@ -192,7 +207,7 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
     ],
     approveLabel: "Open Account",
     denyLabel: "Decline",
-    single: false,
+    single: true,
     canApprove: () => true,
     onApprove() {
       bank.cash += openingDeposit;
@@ -219,6 +234,7 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
     segmentId: profile.id,
     segmentLabel: profile.label,
     customerValue: amount,
+    story: `${profile.name} needs ${fmt(amount)} from their savings today.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} withdrawal`,
       amount: fmt(amount),
@@ -234,7 +250,19 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
     ],
     approveLabel: "✅ Honour",
     denyLabel:    "❌ Refuse",
-    single: false,
+    single: canPay(),
+    choicePreview: canPay() ? null : {
+      approve: {
+        title: "Attempt the payout",
+        summary: "The vault is short. Failing to pay will cost 10 standing.",
+        tone: "risk",
+      },
+      deny: {
+        title: "Explain the shortfall",
+        summary: "Keep the remaining cash, but lose 6 standing.",
+        tone: "tradeoff",
+      },
+    },
     canApprove: () => true,
     onApprove() {
       if (!canPay()) {

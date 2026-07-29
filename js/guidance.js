@@ -6,9 +6,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createGuidance() {
   const TIPS = Object.freeze([
     Object.freeze({
-      id: "welcome", stage: "Getting started", title: "Open the teller wicket",
-      body: "Move to the main counter, then use the on-screen Serve button, E, or controller A. Customers join a live queue, so the first skill is deciding when to serve and when to keep moving.",
-      action: "teller", actionLabel: "Show controls",
+      id: "welcome", stage: "Getting started", title: "Five appointments make a day",
+      body: "Your wicket is already open. Routine requests take one tap; loan requests ask you to balance the customer's plan against the bank's cash, capital, and standing.",
+      action: "teller", actionLabel: "View controls",
       eligible: bank => bank.day === 1 && (bank.stats?.customersServed || 0) === 0,
     }),
     Object.freeze({
@@ -19,13 +19,13 @@
     }),
     Object.freeze({
       id: "staffing", stage: "Delegation", title: "Your first hire changes the loop",
-      body: "After serving several customers, hire a teller in Manage. Staff need matching workstations and wages continue even on quiet days.",
+      body: "After you know the daily rhythm, hire a teller to handle routine services. Wages continue even on quiet days, so add payroll deliberately.",
       action: "manage", actionLabel: "Open Manage",
-      eligible: bank => (bank.stats?.customersServed || 0) >= 3 && !(bank.staff || []).length,
+      eligible: bank => (bank.stats?.customersServed || 0) >= 10 && !(bank.staff || []).length,
     }),
     Object.freeze({
       id: "workstations", stage: "Delegation", title: "Build capacity before adding payroll",
-      body: "Counters and risk desks determine which employees can work. Furnishings belong to the current branch and remain there when you travel.",
+      body: "Counters and risk desks determine which employees can work. Add only the capacity your current team can use.",
       action: "build", actionLabel: "Enter Build",
       eligible: bank => (bank.staff || []).length > 0 && !Object.keys(bank.upgrades || {}).length,
     }),
@@ -36,38 +36,8 @@
       eligible: bank => (bank.loanBook || []).length > 0,
     }),
     Object.freeze({
-      id: "prestige", stage: "Growth", title: "Prestige unlocks better demand",
-      body: "Standing, customer service, capital, and market share advance prestige. New tiers unlock institutional and enterprise customers.",
-      action: "manage", actionLabel: "Review prestige",
-      eligible: bank => (bank.prestigeLevel || 0) >= 1,
-    }),
-    Object.freeze({
-      id: "expansion", stage: "Regional strategy", title: "Compare regions before expanding",
-      body: "Setup cost is an expense; starting capital is transferred into the new branch. Demand, rent, crime, growth, and rival strength all change the commitment.",
-      action: "regions", actionLabel: "Open Regions",
-      eligible: bank => (bank.prestigeLevel || 0) >= 1 && (bank.campaign?.branches || []).length === 1,
-    }),
-    Object.freeze({
-      id: "pricing", stage: "Margin management", title: "Pricing is a tradeoff, not an upgrade",
-      body: "Deposit terms trade funding cost for deposit growth. Fee strategy trades income per case for demand and share. Start at Market Rate and Standard Fees, then change one lever at a time in Manage.",
-      action: "manage", actionLabel: "Review pricing",
-      eligible: bank => (bank.prestigeLevel || 0) >= 1,
-    }),
-    Object.freeze({
-      id: "policies", stage: "Regional strategy", title: "Branches need different policies",
-      body: "Lending policy controls volume and expected loss. Deposit pricing trades funding cost for deposit flow, while fee strategy trades fee yield for customer demand and market share. Set each branch for its local market.",
-      action: "regions", actionLabel: "Compare policies",
-      eligible: bank => (bank.campaign?.branches || []).length >= 2,
-    }),
-    Object.freeze({
-      id: "travel", stage: "Executive control", title: "Visit a branch next day",
-      body: "Schedule travel in Regions. The destination loads its own cash, deposits, loan book, staff, upgrades, and floor while every other branch simulates in aggregate.",
-      action: "regions", actionLabel: "Plan a visit",
-      eligible: bank => (bank.campaign?.branches || []).length >= 2,
-    }),
-    Object.freeze({
       id: "recovery", stage: "Financial pressure", title: "A warning is not a game over",
-      body: "Low liquidity can be recovered through capital transfers, loan participation sales, emergency credit, tighter policy, or delayed expansion.",
+      body: "Low liquidity is a warning, not a game over. Protect cash by declining optional loans and review the repayment schedule before the next day.",
       action: "manage", actionLabel: "Review recovery tools",
       eligible: bank => (bank.cash || 0) < 800 || ((bank.deposits || 0) > 0 && bank.cash / bank.deposits < 0.15),
     }),

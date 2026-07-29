@@ -4,7 +4,7 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   root.BankOperations = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createOperations() {
-  const BASE_PATIENCE_SECONDS = 34;
+  const BASE_PATIENCE_SECONDS = 60;
   const LOBBY_PATIENCE_BONUS = 12;
   const STAFF_CANDIDATES = Object.freeze([
     Object.freeze({
@@ -161,42 +161,40 @@
     };
   }
 
+  function dailyAppointmentTarget() {
+    return 5;
+  }
+
   function currentObjective(bank, currentNetWorth) {
     const served = bank.stats?.customersServed || 0;
     const upgrades = Object.values(bank.upgrades || {}).reduce((sum, count) => sum + count, 0);
-    if (served < 1) {
-      return { step: 1, total: 7, title: "Serve your first customer", progress: `${served}/1` };
-    }
-    if (served < 3) {
-      return { step: 2, total: 7, title: "Serve three customers", progress: `${served}/3` };
-    }
-    if (!(bank.staff || []).length) {
-      return { step: 3, total: 7, title: "Hire your first teller in Manage", progress: "0/1" };
-    }
-    if (upgrades < 1) {
-      return { step: 4, total: 7, title: "Place one branch upgrade in Build", progress: "0/1" };
-    }
-    if (!(bank.staff || []).some(member => (member.level || 1) >= 2)) {
-      return { step: 5, total: 7, title: "Train one employee in Manage", progress: "0/1" };
-    }
-    const loanDeskReady = activeStaff(bank, "loans").length > 0;
-    if (!loanDeskReady) {
-      const hasDesk = workstationCapacity(bank, "loans") > 0;
-      const hasLoanStaff = (bank.staff || []).some(member => member.assignment === "loans");
-      return {
-        step: 6,
-        total: 7,
-        title: "Staff a working loan desk",
-        progress: `${hasDesk ? "Desk ready" : "Place desk"} · ${hasLoanStaff ? "Officer assigned" : "Assign officer"}`,
-      };
+    if (served < 5) {
+      return { step: 1, total: 5, title: "Complete your first five appointments", progress: `${served}/5` };
     }
     const target = 1_200;
+    if (currentNetWorth < target) {
+      return {
+        step: 2,
+        total: 5,
+        title: "Build a $1,200 capital cushion",
+        progress: `$${Math.round(currentNetWorth).toLocaleString()} / $${target.toLocaleString()}`,
+      };
+    }
+    if (served < 10) {
+      return { step: 3, total: 5, title: "Get to know ten customers", progress: `${served}/10` };
+    }
+    if (!(bank.staff || []).length) {
+      return { step: 4, total: 5, title: "Hire a teller for routine service", progress: "0/1" };
+    }
+    if (upgrades < 1) {
+      return { step: 5, total: 5, title: "Choose one useful branch improvement", progress: "0/1" };
+    }
     return {
-      step: 7,
-      total: 7,
-      title: "Grow net capital to $1,200",
-      progress: `$${Math.round(currentNetWorth).toLocaleString()} / $${target.toLocaleString()}`,
-      complete: currentNetWorth >= target,
+      step: 5,
+      total: 5,
+      title: "Silver Creek knows your bank",
+      progress: "Foundation complete",
+      complete: true,
     };
   }
 
@@ -214,18 +212,18 @@
     const reserveRatio = (Number(bank.deposits) || 0) > 0
       ? (Number(bank.cash) || 0) / Number(bank.deposits)
       : 1;
-    const staffing = served >= 3 || staff.length > 0;
+    const staffing = served >= 10 || staff.length > 0;
     const building = staffing || Object.keys(bank.upgrades || {}).length > 0;
     const credit = creditDecisions > 0 || (bank.loanBook || []).length > 0
       || staff.some(member => member.assignment === "loans");
-    const regional = (Number(bank.prestigeLevel) || 0) >= 1 || branches > 1;
+    const regional = branches > 1 || ((Number(bank.day) || 1) >= 30 && (Number(bank.prestigeLevel) || 0) >= 3);
     return {
       stage: branches > 1 ? "Executive" : staff.length ? "Manager" : staffing ? "Operator" : "Teller",
       staffing,
       building,
       credit,
-      market: served >= 5 || (Number(bank.prestigeLevel) || 0) >= 1,
-      world: (Number(bank.day) || 1) >= 3 || conditions > 0 || worldHistory > 0 || followUps > 0,
+      market: served >= 10 || (Number(bank.prestigeLevel) || 0) >= 2,
+      world: (Number(bank.day) || 1) >= 6 || conditions > 0 || worldHistory > 0 || followUps > 0,
       pricing: regional,
       regional,
       recovery: (Number(bank.cash) || 0) < 800 || reserveRatio < 0.15 || Boolean(bank.missedDebtPayment),
@@ -252,6 +250,7 @@
     serviceIntervalMs,
     trainingCost,
     staffingSummary,
+    dailyAppointmentTarget,
     currentObjective,
     featureAvailability,
   });
