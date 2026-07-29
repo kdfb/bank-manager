@@ -25,6 +25,7 @@ let pinchStartDistance = 0;
 let pinchStartZoom = 1;
 let suppressCanvasClickUntil = 0;
 let dayFinishQueued = false;
+let staffToastTimer = null;
 
 const WESTERN_CHARACTER_ATLAS = "assets/western/characters-atlas.png";
 const WESTERN_FURNITURE_ATLAS = "assets/western/furniture-atlas.png";
@@ -1182,12 +1183,26 @@ function autoResolveCustomer(customer, silent = false, staffMember = null, force
   recordCustomerService(customer, staffMember);
   ev.resolved = true;
   if (!silent) addLog(`${staffMember ? staffMember.name : "Auto"}: ${res.msg}`, res.kind);
+  if (staffMember) showStaffServiceToast(staffMember, ev);
   customer.state = "leaving";
   advanceResolvedQueue();
   renderStats();
   if (checkLose()) { stopTimers(); return false; }
   maybeFinishAppointmentDay();
   return true;
+}
+
+function showStaffServiceToast(staffMember, event) {
+  const toast = document.getElementById("staffServiceToast");
+  if (!toast) return;
+  clearTimeout(staffToastTimer);
+  const service = event.eventType === "Deposit Proposal" ? "deposit"
+    : event.eventType === "Withdrawal Demand" ? "withdrawal"
+      : event.eventType === "Account Opening" ? "new account"
+        : "appointment";
+  toast.innerHTML = `<strong>${staffMember.name}</strong><span>Handled ${service} for ${event.title}</span>`;
+  toast.classList.add("show");
+  staffToastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
 }
 
 function recordCustomerService(customer, staffMember) {
@@ -1247,6 +1262,7 @@ function startBranchDay() {
   decisionOpen = false;
   if (branchState.tellerLocked) keepPlayerAtTeller();
   document.body.classList.toggle("at-teller", branchState.tellerLocked);
+  document.getElementById("staffServiceToast")?.classList.remove("show");
   setDecisionLayerVisible(false);
   updateModeBanner();
   renderBranchStatus(true);

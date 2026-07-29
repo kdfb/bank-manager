@@ -24,9 +24,9 @@
       eligible: bank => (bank.stats?.customersServed || 0) >= 10 && !(bank.staff || []).length,
     }),
     Object.freeze({
-      id: "workstations", stage: "Delegation", title: "Build capacity before adding payroll",
-      body: "Counters and risk desks determine which employees can work. Add only the capacity your current team can use.",
-      action: "build", actionLabel: "Enter Build",
+      id: "workstations", stage: "Improvement", title: "Improve the bottleneck you can feel",
+      body: "Manage offers four focused improvements. Choose one when slow service, loan risk, or thin margins becomes a real problem—not just because cash is available.",
+      action: "manage", actionLabel: "Review improvements",
       eligible: bank => (bank.staff || []).length > 0 && !Object.keys(bank.upgrades || {}).length,
     }),
     Object.freeze({

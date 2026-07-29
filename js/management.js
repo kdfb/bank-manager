@@ -31,6 +31,10 @@ function hireStaff(candidateId) {
   BankAudio.play("purchase");
   if (bank.phase === "operating" && branchState && BankOperations.activeStaff(bank, "counter").length) {
     branchState.tellerLocked = false;
+    branchState.nextStaffServiceAt = Math.min(
+      branchState.nextStaffServiceAt || Number.POSITIVE_INFINITY,
+      performance.now() + 800,
+    );
     document.body.classList.remove("at-teller");
   }
   renderStats();

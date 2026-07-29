@@ -62,6 +62,53 @@
     return Boolean(bank.town.outcome && bank.town.completedDay);
   }
 
+  function financingTerms(bank) {
+    const surveyed = choice(bank, "mill-survey")?.choice === "survey";
+    const bridged = choice(bank, "supplier-note")?.choice === "bridge";
+    const preparation = Number(surveyed) + Number(bridged);
+    return {
+      preparation,
+      cooperativeAmount: 900 - preparation * 100,
+      cooperativeRisk: preparation >= 2 ? "medium" : "high",
+      repairAmount: 300,
+    };
+  }
+
+  function projectStatus(bank) {
+    migrate(bank);
+    const survey = choice(bank, "mill-survey");
+    const supplier = choice(bank, "supplier-note");
+    const terms = financingTerms(bank);
+    if (isComplete(bank)) {
+      return {
+        progress: "3 of 3 decisions",
+        title: bank.town.outcome === "cooperative" ? "The cooperative mill is financed" : "The old mill repair is financed",
+        body: "The resulting loan remains in the bank's portfolio during open-ended play.",
+      };
+    }
+    if (!survey) {
+      return {
+        progress: "The story begins tomorrow",
+        title: "A plan is forming at the old mill",
+        body: "Elena and Samir are bringing the bank a proposal. No money has been committed yet.",
+      };
+    }
+    if (!supplier) {
+      return {
+        progress: "1 of 3 decisions",
+        title: survey.choice === "survey" ? "The bank funded an engineering survey" : "The cooperative is funding its own survey",
+        body: survey.choice === "survey"
+          ? "Better information lowered the projected cooperative loan by $100. One preparation step remains."
+          : "The bank preserved $200 in cash, but the cooperative estimate remains larger and high-risk.",
+      };
+    }
+    return {
+      progress: "2 of 3 decisions",
+      title: supplier.choice === "bridge" ? "Local materials are reserved" : "Members will pledge collateral",
+      body: `Tomorrow's choice: a ${terms.cooperativeRisk}-risk $${terms.cooperativeAmount} cooperative loan or a low-risk $${terms.repairAmount} repair.`,
+    };
+  }
+
   function identity(bank) {
     migrate(bank);
     const approved = Math.max(0, Number(bank.stats?.loansApproved) || 0);
@@ -127,6 +174,8 @@
     nextMoment,
     complete,
     isComplete,
+    financingTerms,
+    projectStatus,
     identity,
     summary,
   });
