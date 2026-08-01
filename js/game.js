@@ -47,9 +47,9 @@ function makeOpeningDayEvent(index) {
   const caseNumber = Math.max(0, Math.min(4, index));
   const blueprints = [
     { customer: "carmen", service: "account", purpose: "a household account", risk: "low" },
-    { customer: "elena", service: "loan", purpose: "winter feed before the first snow", risk: "medium" },
+    { customer: "elena", service: "loan", purpose: "winter feed before the first snow", risk: "medium", amount: 700, termMonths: 12 },
     { customer: "hiro", service: "withdrawal", purpose: "winter provisions", risk: "low" },
-    { customer: "liam", service: "loan", purpose: "safer equipment for a promising claim", risk: "high" },
+    { customer: "liam", service: "loan", purpose: "safer equipment for a promising claim", risk: "high", amount: 1_200, termMonths: 12 },
     { customer: "grace", service: "deposit", purpose: "the week's shop takings", risk: "low" },
   ];
   const blueprint = blueprints[caseNumber];
@@ -66,7 +66,7 @@ function makeRecurringCustomerEvent(index) {
     ["hiro", "grace", "carmen", "samir", "liam"],
     ["elena", "liam", "grace", "carmen", "samir"],
   ];
-  const services = ["deposit", "loan", "withdrawal", "loan", "account"];
+  const services = ["deposit", "loan", "withdrawal", "account", "deposit"];
   const purposes = {
     carmen: "a sturdy sewing machine for winter work",
     elena: "seed and repairs before the spring thaw",
@@ -76,7 +76,7 @@ function makeRecurringCustomerEvent(index) {
     samir: "a reliable iron oven for the morning bread line",
   };
   const lineup = lineups[(Math.max(2, bank.day) - 2) % lineups.length];
-  const slot = Math.max(0, Math.min(4, index));
+  const slot = Math.abs(Number(index) || 0) % services.length;
   const customerId = lineup[slot];
   const service = services[slot];
   const riskCycle = ["low", "medium", "high"];
@@ -92,7 +92,7 @@ function makeRecurringCustomerEvent(index) {
 }
 
 function makeCustomerEvent() {
-  if (bank.day === 1 && queue.length < BankOperations.dailyAppointmentTarget(bank)) {
+  if (bank.day === 1 && queue.length < 5) {
     return makeOpeningDayEvent(queue.length);
   }
   if (typeof location !== "undefined" && !debugWorldEventInjected) {
@@ -116,14 +116,8 @@ function makeCustomerEvent() {
     }
   }
   const queuedCommunityFollowUps = queue.map(event => event.communityFollowUpId).filter(Boolean);
-  const queuedTownMoments = queue.map(event => event.townMomentId).filter(Boolean);
-  const townMoment = BankTown.nextMoment(bank, queuedTownMoments);
-  if (townMoment) return makeTownProjectEvent(townMoment);
   const communityFollowUp = BankCommunity.pendingFollowUps(bank, queuedCommunityFollowUps)[0];
   if (communityFollowUp) return makeCommunityFollowUpEvent(communityFollowUp);
-  if (BankWorld.pendingFollowUps(bank).some(pending => pending.dueDay <= bank.day)) return makeWorldEvent();
-  const roll = Math.random();
-  if (bank.day >= 8 && roll < 0.05) return makeRandomEvent();
   if (bank.day <= 30) return makeRecurringCustomerEvent(queue.length);
   const profile = BankMarket.customerProfile(bank, Math.random);
   if (profile.service === "loan") return makeLoanEvent(profile);
@@ -239,16 +233,35 @@ function endOfDay() {
   if (dayDelta < bank.stats.worstDay) bank.stats.worstDay = dayDelta;
 
   const portfolio = BankPortfolio.portfolioSummary(bank.loanBook, bank.day);
+  const serviceSteps = bank.dayMetrics.serviceSteps || 0;
+  const serviceAccuracy = serviceSteps
+    ? Math.round((bank.dayMetrics.servicePoints || 0) / (serviceSteps * 3) * 100)
+    : 0;
+  const service = {
+    served: bank.dayMetrics.customersServed || 0,
+    lost: bank.dayMetrics.customersLost || 0,
+    accuracy: serviceAccuracy,
+    perfect: bank.dayMetrics.perfectServices || 0,
+    steady: bank.dayMetrics.steadyServices || 0,
+    rushed: bank.dayMetrics.rushedServices || 0,
+  };
+  const townMoment = BankTown.nextMoment(bank, []);
+  const worldFollowUpDue = BankWorld.pendingFollowUps(bank).some(pending => pending.dueDay <= bank.day);
+  const afterHoursWorldEvent = !townMoment && (worldFollowUpDue || (bank.day >= 8 && Math.random() < 0.05))
+    ? makeWorldEvent()
+    : null;
   const expiredConditions = BankWorld.advanceConditions(bank);
   const worldEvents = bank.world.history.filter(entry => entry.day === bank.day);
   bank.lastReport = {
     loanIncome, depInt, rent, wages, defaults, debtPayment, dayDelta, cashChange,
-    loanMetrics, portfolio,
+    loanMetrics, portfolio, service,
     world: { conditionsToday, expiredConditions, events: worldEvents },
     pricing: { depositPricing: bank.depositPricing, feePricing: bank.feePricing, effects: pricingEffects },
     prestigePromotions,
     network: networkDay,
     campaignProgress,
+    townMomentId: townMoment?.id || null,
+    afterHoursWorldEventId: afterHoursWorldEvent?.worldEventId || null,
   };
   const networkDeposits = bank.campaign.branches.reduce((sum, branch) => sum + (branch.active ? bank.deposits : branch.deposits), 0);
   const networkLoans = bank.campaign.branches.reduce((sum, branch) => sum + (branch.active ? bank.loansOut : branch.loans), 0);
@@ -274,8 +287,41 @@ function endOfDay() {
   saveGame();
 }
 
+function resolveAfterHoursTown(choice) {
+  if (bank.phase !== "report" || !bank.lastReport?.townMomentId) return false;
+  const moment = BankTown.MOMENTS.find(entry => entry.id === bank.lastReport.townMomentId);
+  if (!moment) return false;
+  const event = makeTownProjectEvent(moment);
+  const result = choice === "left" ? event.onDeny() : event.onApprove();
+  addLog(result.msg, result.kind);
+  bank.lastReport.townMomentId = null;
+  renderStats();
+  renderEndOfDay(bank.lastReport);
+  BankAudio.playOutcome(result.kind);
+  maybeShowCampaignConclusion();
+  saveGame();
+  return true;
+}
+
+function resolveAfterHoursWorld(choice) {
+  if (bank.phase !== "report" || !bank.lastReport?.afterHoursWorldEventId) return false;
+  const event = makeWorldEvent(bank.lastReport.afterHoursWorldEventId);
+  const result = choice === "left" ? event.onDeny() : event.onApprove();
+  addLog(result.msg, result.kind);
+  bank.lastReport.afterHoursWorldEventId = null;
+  renderStats();
+  renderEndOfDay(bank.lastReport);
+  BankAudio.playOutcome(result.kind);
+  saveGame();
+  return true;
+}
+
 // ── Phase 2: player confirms, next day begins ──────────────────
 function startNextDay() {
+  if (bank.lastReport?.townMomentId || bank.lastReport?.afterHoursWorldEventId) {
+    addLog("Resolve the after-hours choice before opening tomorrow.", "warn");
+    return false;
+  }
   setDecisionLayerVisible(false);
   decisionOpen = false;
   addLog(`${gameDate(bank.day)} concluded.`, "neutral");

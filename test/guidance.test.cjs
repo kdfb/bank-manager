@@ -18,9 +18,10 @@ function bankFixture(overrides = {}) {
   };
 }
 
-test("new banks receive the five-appointment contextual guidance", () => {
+test("new banks receive timed-shift contextual guidance", () => {
   const bank = bankFixture();
   assert.equal(Guidance.next(bank).id, "welcome");
+  assert.match(Guidance.next(bank).body, /sixty seconds/i);
   Guidance.markSeen(bank, "welcome");
   assert.equal(Guidance.next(bank), null);
 });

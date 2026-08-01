@@ -162,15 +162,15 @@
     };
   }
 
-  function dailyAppointmentTarget() {
-    return 5;
+  function dailyServiceGoal(bank = {}) {
+    return Math.min(12, 7 + Math.floor((Math.max(1, Number(bank.day) || 1) - 1) / 2));
   }
 
   function currentObjective(bank, currentNetWorth) {
     const served = bank.stats?.customersServed || 0;
     const upgrades = Object.values(bank.upgrades || {}).reduce((sum, count) => sum + count, 0);
-    if (served < 5) {
-      return { step: 1, total: 5, title: "Complete your first five appointments", progress: `${served}/5` };
+    if (served < 7) {
+      return { step: 1, total: 5, title: "Serve seven customers in your opening shift", progress: `${served}/7` };
     }
     const target = 1_200;
     if (currentNetWorth < target) {
@@ -181,8 +181,8 @@
         progress: `$${Math.round(currentNetWorth).toLocaleString()} / $${target.toLocaleString()}`,
       };
     }
-    if (served < 10) {
-      return { step: 3, total: 5, title: "Get to know ten customers", progress: `${served}/10` };
+    if (served < 14) {
+      return { step: 3, total: 5, title: "Find your rhythm across two shifts", progress: `${served}/14` };
     }
     if (!(bank.staff || []).length) {
       return { step: 4, total: 5, title: "Hire a teller for routine service", progress: "0/1" };
@@ -212,8 +212,7 @@
   // preserving every simulation system for the stage where it becomes useful.
   function featureAvailability(bank) {
     const served = Math.max(0, Number(bank.stats?.customersServed) || 0);
-    const creditDecisions = Math.max(0,
-      (Number(bank.stats?.loansApproved) || 0) + (Number(bank.stats?.loansDenied) || 0));
+    const creditActivity = Math.max(0, Number(bank.stats?.loansApproved) || 0);
     const staff = Array.isArray(bank.staff) ? bank.staff : [];
     const branches = Array.isArray(bank.campaign?.branches) ? bank.campaign.branches.length : 1;
     const conditions = Object.keys(bank.world?.conditions || {}).length;
@@ -224,7 +223,7 @@
       : 1;
     const staffing = served >= 10 || staff.length > 0;
     const building = staffing || Object.keys(bank.upgrades || {}).length > 0;
-    const credit = creditDecisions > 0 || (bank.loanBook || []).length > 0
+    const credit = creditActivity > 0 || (bank.loanBook || []).length > 0
       || staff.some(member => member.assignment === "loans");
     const regional = branches > 1;
     return {
@@ -260,7 +259,7 @@
     serviceIntervalMs,
     trainingCost,
     staffingSummary,
-    dailyAppointmentTarget,
+    dailyServiceGoal,
     currentObjective,
     featureAvailability,
   });

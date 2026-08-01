@@ -208,20 +208,30 @@ test("mobile play keeps secondary actions compact and supports persistent camera
   assert.match(settings, /Math\.max\(0\.8, Math\.min\(2\.2/);
 });
 
-test("the opening day is a focused five-appointment banking loop", () => {
+test("the opening day is a timed service shift without loan approve-deny cards", () => {
   const game = readFileSync(join(root, "js", "game.js"), "utf8");
   const community = readFileSync(join(root, "js", "community.js"), "utf8");
   const events = readFileSync(join(root, "js", "events.js"), "utf8");
   const render = readFileSync(join(root, "js", "render.js"), "utf8");
   const css = readFileSync(join(root, "css", "style.css"), "utf8");
+  const branch = readFileSync(join(root, "js", "branch.js"), "utf8");
+  const service = readFileSync(join(root, "js", "service.js"), "utf8");
   assert.match(game, /function makeOpeningDayEvent/);
+  assert.match(game, /amount:\s*700,\s*termMonths:\s*12/);
+  assert.match(game, /amount:\s*1_200,\s*termMonths:\s*12/);
   for (const customer of ["Carmen Reyes", "Green Valley Farm", "Hiro Tanaka", "Copper Ridge Crew", "Blue Peak Outfitters"]) {
     assert.match(community, new RegExp(customer));
   }
   assert.match(events, /single:\s*true/);
-  assert.match(events, /choicePreview/);
-  assert.match(render, /No strategic tradeoff/);
-  assert.match(render, /class="choice-grid"/);
+  assert.doesNotMatch(events.match(/function makeDepositEvent[\s\S]*?function makeAccountEvent/)?.[0] || "", /onDeny/);
+  assert.doesNotMatch(events.match(/function makeAccountEvent[\s\S]*?function makeWithdrawalEvent/)?.[0] || "", /onDeny/);
+  assert.doesNotMatch(events.match(/function makeWithdrawalEvent[\s\S]*?function makeCommunityFollowUpEvent/)?.[0] || "", /onDeny/);
+  assert.match(events, /function customerStorySubject/);
+  assert.match(service, /"Credit Application"/);
+  assert.match(service, /function judge/);
+  assert.match(branch, /function performServiceStep/);
+  assert.match(render, /function renderServiceEvent/);
+  assert.match(css, /\.service-timing-track/);
   assert.match(render, /class="report-details"/);
   assert.match(css, /body\.decision-open \.interaction-prompt/);
 });
@@ -251,7 +261,7 @@ test("the first management unlock stays focused on delegation and four improveme
   assert.match(html, /id="telemetryPanel"[^>]*hidden/);
   assert.match(floor, /FOCUSED_UPGRADE_IDS[^\n]*teller_window[^\n]*risk_desk[^\n]*vault_upgrade[^\n]*lobby/);
   assert.match(management, /Mara Chen runs the public counter/);
-  assert.match(management, /Loans and returning-customer follow-ups always come to you/);
+  assert.match(management, /longer loan files/);
   assert.match(management, /function renderEndOfDayReward/);
   assert.match(render, /renderEndOfDayReward/);
 });
@@ -264,9 +274,13 @@ test("the focused campaign culminates in a local seven-day decision", () => {
   const operations = readFileSync(join(root, "js", "operations.js"), "utf8");
   assert.match(html, /js\/town\.js/);
   assert.match(game, /BankTown\.nextMoment/);
+  assert.match(game, /afterHoursWorldEventId/);
   assert.match(events, /Could Silver Creek Own Its Mill/);
   assert.match(events, /What Kind of Town Will This Be/);
   assert.match(render, /function showSilverCreekConclusion/);
+  assert.match(render, /function renderAfterHoursTownChoice/);
+  assert.match(render, /function renderAfterHoursWorldChoice/);
+  assert.match(render, /Resolve the after-hours choice to close the day/);
   assert.match(render, /The Silver Creek Ledger/);
   assert.match(operations, /const regional = branches > 1/);
 });

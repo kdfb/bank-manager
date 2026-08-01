@@ -16,8 +16,9 @@ test("waiting-area upgrades extend customer patience", () => {
   assert.equal(Operations.patienceSeconds(bankFixture({ upgrades: { lobby: 2 } })), 84);
 });
 
-test("a focused day contains five appointments", () => {
-  assert.equal(Operations.dailyAppointmentTarget(bankFixture()), 5);
+test("a timed shift begins with a seven-customer service goal", () => {
+  assert.equal(Operations.dailyServiceGoal(bankFixture({ day: 1 })), 7);
+  assert.equal(Operations.dailyServiceGoal(bankFixture({ day: 7 })), 10);
 });
 
 test("queue health reports wait pressure and at-risk customers", () => {
@@ -96,22 +97,22 @@ test("legacy employees migrate to assigned, trainable roster members", () => {
 
 test("branch objectives advance through the operator-to-manager path", () => {
   assert.equal(Operations.currentObjective(bankFixture(), 1_000).step, 1);
-  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 5 } }), 1_000).step, 2);
-  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 5 } }), 1_200).step, 3);
+  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 7 } }), 1_000).step, 2);
+  assert.equal(Operations.currentObjective(bankFixture({ stats: { customersServed: 7 } }), 1_200).step, 3);
   assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 10 },
+    stats: { customersServed: 14 },
   }), 1_200).step, 4);
   assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 10 },
+    stats: { customersServed: 14 },
     staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
   }), 1_200).step, 5);
   assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 10 },
+    stats: { customersServed: 14 },
     staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
     upgrades: { lobby: 1 },
   }), 1_200).step, 6);
   assert.equal(Operations.currentObjective(bankFixture({
-    stats: { customersServed: 10 },
+    stats: { customersServed: 14 },
     staff: [Operations.normalizeStaffMember({ id: "mara-chen" })],
     upgrades: { lobby: 1 },
     town: { choices: [{ id: "mill-survey", choice: "survey" }], outcome: "cooperative" },

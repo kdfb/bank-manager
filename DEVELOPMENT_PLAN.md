@@ -18,35 +18,30 @@ If the answer is no, the mechanic is removed or deferred.
 
 ## Core loop
 
-Each day is a short, self-contained set of five appointments.
+Each day contains a sixty-second public service shift followed by an unhurried management phase.
 
-1. Open at the teller counter.
-2. Meet a customer and understand what they need.
-3. Process routine work quickly or make a consequential lending choice.
-4. See the result immediately in cash, capital, and standing.
-5. Finish five appointments and review one clear daily result.
-6. Spend earnings on one useful improvement when it solves a felt problem.
-7. Return the next day to new people, new stories, and the consequences of prior loans.
+1. Open the branch and watch the first customers enter.
+2. Move to the wicket before patience runs out.
+3. Complete a short service sequence by timing two or three clear actions.
+4. Build a run of accurate service while keeping a growing line from losing patience.
+5. Finish the shift and review customers served, service quality, earnings, and anyone lost.
+6. Make one unhurried staffing, improvement, or town-project choice after closing.
+7. Return the next day to a busier room, familiar faces, and visible consequences.
 
 The short loop is:
 
-`Meet → Understand → Decide → See consequence → Improve`
+`Notice → Prioritize → Serve → Recover → Improve`
 
-## What makes a good customer case
+## What makes good daytime service
 
-A case needs a person, a concrete goal, and a real tradeoff.
+A customer needs a recognizable person, a readable request, and a service rhythm the player can learn.
 
-Routine services—opening an account, making a deposit, or collecting an affordable withdrawal—use one clear action. The game must not pretend that an obviously correct service is a strategic choice.
+- Accounts require checking identity and stamping the ledger.
+- Deposits require counting notes and posting the total.
+- Withdrawals require verifying the signature and counting the payout.
+- Loan consultations require reviewing the purpose, checking the figures, and preparing terms.
 
-Loan cases are the heart of the game. A loan decision shows:
-
-- who is asking and what the money enables;
-- cash committed today;
-- likely earnings if repaid;
-- understandable risk and expected loss;
-- the standing consequence of turning the customer away.
-
-Neither approval nor refusal should be universally correct. A safe applicant may arrive when the vault is low. A risky project may be important to the town. A profitable loan may delay a needed bank improvement.
+The player does not approve or deny ordinary loan applications. The bank serves the customer and structures the best loan its cash and underwriting quality allow. Accurate work improves fees, standing, and loan quality; rushed work lowers rewards and can leave a riskier portfolio. Financial strategy comes from staffing, improvements, liquidity, and larger after-hours town commitments—not a repeated pair of moralized buttons.
 
 ## Player resources
 
@@ -55,9 +50,9 @@ The main play screen exposes only four resources:
 - **Cash:** money available now.
 - **Capital:** the bank's financial cushion.
 - **Standing:** the town's trust in the bank.
-- **Appointments:** progress through today's five customers.
+- **Shift:** time remaining and customers served.
 
-Loans and deposits exist in the simulation but appear in the ledger and relevant decisions, not as permanent opening-screen homework.
+Loans and deposits exist in the simulation but appear in service requests, the ledger, and after-hours planning—not as permanent opening-screen homework.
 
 ## Progression
 
@@ -65,16 +60,16 @@ Progression deepens the same loop instead of replacing it with unrelated systems
 
 ### Chapter 1 — The counter
 
-- Five appointments per day.
-- Routine deposits, withdrawals, and account openings.
-- Personal loan decisions with visible forecasts.
-- A simple daily recap.
+- A sixty-second shift with a readable customer queue.
+- Two-step deposits, withdrawals, and account openings.
+- Three-step loan consultations whose quality changes the resulting loan.
+- A simple recap of throughput, accuracy, and finances.
 - One small branch and a handful of recurring townspeople.
 
 ### Chapter 2 — A better bank
 
-- A teller can handle routine appointments.
-- The player keeps unusual customers and lending decisions.
+- A teller can handle routine services.
+- The player keeps longer loan files and unusual customer requests.
 - A few visible improvements solve specific problems: a second counter, a safer vault, a comfortable waiting area, and a loan desk.
 - Improvements change the room and the loop; there are no decorative filler upgrades.
 
@@ -95,11 +90,11 @@ The focused campaign is one week in Silver Creek, not a march toward regional ex
 - **Day 7 — Decision:** choose between a larger cooperative mill loan and a smaller, safer repair.
 - **Conclusion:** the ledger names the bank's identity from its actual lending and town choices, resolves the mill, and allows open-ended continuation.
 
-Early commitments must change the final numbers. Careful preparation makes the cooperative cheaper and less risky; declining early commitments preserves cash but leaves the larger plan more dangerous. The final choice is not a morality test: both outcomes keep Silver Creek alive in different ways.
+Early commitments must change the final numbers. Careful preparation makes the cooperative cheaper and less risky; choosing cash-preserving paths leaves the larger plan more dangerous. The final choice is not a morality test: both outcomes keep Silver Creek alive in different ways.
 
 ## Features removed from the core game
 
-The following systems are not part of the focused campaign until the appointment loop proves fun in repeated playtests:
+The following systems are not part of the focused campaign until the service loop proves fun in repeated playtests:
 
 - multiple regions and branch travel;
 - rival market-share simulation;
@@ -117,9 +112,9 @@ Existing prototype code for these systems may remain temporarily for save compat
 
 ## Time and pressure
 
-The game is turn-led, not reflex-led. A day ends after its appointments, while the clock is a generous fallback rather than the main challenge. Time should encourage a pleasant rhythm, never punish a player for reading a customer story.
+The public shift is timed; all reading and strategic decisions are not. Customer requests use large icons and short labels during the shift. Longer stories, loan details, improvements, and town commitments appear after closing or in optional records where the clock is paused.
 
-Difficulty comes from limited cash and imperfect choices, not fast clicking.
+The service challenge rewards rhythm rather than twitch speed. Timing zones are generous, a miss still completes the step, and failure reduces quality instead of stopping progress. Difficulty comes from reading queue pressure, recovering from rushed work, and building a branch that can handle more customers.
 
 ## Economy rules
 
@@ -139,7 +134,7 @@ The recap leads with:
 
 - today's profit or loss;
 - closing cash and capital;
-- appointments completed and customers lost;
+- customers served, service accuracy, and customers lost;
 - one sentence explaining the most important cause;
 - the next known obligation.
 
@@ -155,27 +150,27 @@ A full ledger remains available for players who want it, but it is collapsed by 
 
 ## Current build sequence
 
-### Slice A — Five-appointment day
+### Slice A — Timed service shift
 
 - Begin at the open teller counter.
-- Curate the first five services.
-- Remove false choices from routine transactions.
-- Preview both sides of every loan decision.
-- End the day when five appointments are complete.
-- Replace the accounting wall with a concise recap and optional detail.
+- Spawn a steady, bounded customer queue for sixty seconds.
+- Give each service a two- or three-step timing sequence.
+- Convert timing quality into satisfaction, fees, and underwriting quality.
+- Keep misses recoverable and all strategic reading outside the clock.
+- End with a concise service-and-finance recap.
 
-Exit test: a new player can finish day one without opening a guide and can explain why they approved or refused each loan.
+Exit test: a new player can serve a complete shift without a guide, understands why accuracy matters, and immediately wants to improve their next run.
 
 ### Slice B — Consequences and familiarity
 
 - Add a small cast of recurring Silver Creek customers.
 - Record prior service and loan outcomes per customer.
-- Return at least two early decisions as later consequences.
+- Return at least two early loans as later customer consequences.
 - Give each day a small authored theme.
 
 Exit test: players remember at least two customers and are curious about what happens next.
 
-Implementation status: the recurring cast, saved visit history, day themes, and two-day loan consequences are built. Blind-player memory and curiosity testing is still required before this slice is considered proven.
+Implementation status: the recurring cast, saved visit history, day themes, and two-day loan consequences are built. Loan follow-ups now reflect the quality-based service result rather than a repeated approve/deny choice. Blind-player memory and curiosity testing is still required before this slice is considered proven.
 
 ### Slice C — Meaningful improvements
 
@@ -186,7 +181,7 @@ Implementation status: the recurring cast, saved visit history, day themes, and 
 
 Exit test: earning the first teller changes the rhythm and feels like a reward.
 
-Implementation status: the catalog now exposes only four purpose-built improvements; Mara delegates routine services while loans and relationship follow-ups stay manual; hiring and the first improvement are offered as day-end rewards; and the former policy, training, pricing, prestige, achievement, and telemetry walls are absent from the normal opening flow. Once Mara is hired, movement controls disappear, a small service receipt confirms each delegated appointment, and she begins work immediately even when hired mid-day. The day-end report also carries the mill thread forward with the exact financing consequence of each early choice. A phone-sized playthrough verified the compact management screen, zoom controls, one-tap placement, and delegated feedback. Blind playtesting is still required to prove that the rhythm change feels rewarding.
+Implementation status: the catalog exposes only four purpose-built improvements. Mara clears routine services while loan files remain interactive, hiring and the first improvement appear after closing, and the former policy, training, pricing, prestige, achievement, and telemetry walls stay out of the opening flow. Delegated service uses a small receipt instead of another modal. The revised timed rhythm still requires phone and blind playtesting before this slice is proven.
 
 ### Slice D — Focused campaign
 
@@ -197,7 +192,7 @@ Implementation status: the catalog now exposes only four purpose-built improveme
 
 Exit test: the campaign has a beginning, escalation, climax, and memorable ending without requiring regional expansion.
 
-Implementation status: a seven-day Silver Creek mill arc now places authored decisions inside the normal five-appointment loop on days 4, 6, and 7. Early choices alter the final loan amount and risk; the conclusion resolves either the cooperative or repair plan and identifies the bank as a careful steward, practical builder, or neighbors' bank from accumulated play. Regional simulation stays out of the focused week. Both finale paths and the mobile conclusion were exercised in-browser. Blind playtesting and broader balance tuning remain required before the campaign is considered proven.
+Implementation status: a seven-day Silver Creek mill arc presents authored after-hours choices on days 4, 6, and 7, never while the service clock runs. Early choices alter the final loan amount and risk; the conclusion resolves either the cooperative or repair plan and identifies the bank from accumulated play. Regional simulation stays out of the focused week. The relocated after-hours flow requires a new end-to-end playthrough before this slice is proven.
 
 ## Playtest questions
 

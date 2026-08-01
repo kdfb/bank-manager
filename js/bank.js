@@ -31,13 +31,15 @@ function initBank() {
     // Run-level stats (for end-of-run summary)
     stats: {
       loansApproved: 0,
-      loansDenied:   0,
       totalIssued:   0,
       bestDay:       0,   // profit delta in single day
       worstDay:      0,
       customersServed: 0,
       staffServed: 0,
       customersLost: 0,
+      perfectServices: 0,
+      steadyServices: 0,
+      rushedServices: 0,
       defaults: 0,
       delinquencies: 0,
       loansRepaid: 0,

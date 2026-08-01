@@ -123,8 +123,10 @@ function autoResolve(silent = false) {
   }
 
   const ev = queue[qIdx];
-  const approve = ev.single || ev.eventType !== "Credit Application";
-  const res = approve ? ev.onApprove() : ev.onDeny();
+  const serviceQuality = typeof BankService !== "undefined"
+    ? BankService.QUALITY.steady
+    : { id: "steady", label: "Steady", points: 2, steps: 1 };
+  const res = ev.onApprove(serviceQuality);
   if (!silent) addLog(`Auto: ${res.msg}`, res.kind);
   qIdx++;
   renderStats();

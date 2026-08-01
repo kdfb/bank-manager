@@ -64,30 +64,44 @@ function communityLobbyBonus(profile) {
   return 1;
 }
 
-// ── Event factories ───────────────────────────────────────────
-// Each returns an event object with: icon, eventType, title, details[],
-// approveLabel, denyLabel?, single, canApprove(), cantMsg?, onApprove(), onDeny()
-
-function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) {
-  const name = ["ranchers", "merchants", "institutions", "enterprises"].includes(profile.id)
+function customerName(profile) {
+  if (profile.communityId) return profile.name;
+  return ["ranchers", "merchants", "institutions", "enterprises"].includes(profile.id)
     ? profile.organization
     : profile.name;
+}
+
+function customerStorySubject(profile) {
+  const name = customerName(profile);
+  return profile.communityId && profile.organization && profile.organization !== name
+    ? `${name} of ${profile.organization}`
+    : name;
+}
+
+// ── Event factories ───────────────────────────────────────────
+// Service events expose onApprove(serviceQuality) as a compatibility name for
+// completing the request. Narrative events still expose two authored paths.
+
+function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) {
+  const name = customerName(profile);
+  const storySubject = customerStorySubject(profile);
   const purpose = profile.purpose;
   const amountMultiplier = profile.amountMultiplier * BankWorld.modifiers(bank).loanAmount;
-  const amount  = Math.max(10, Math.round(randInt(5, 80) * 10 * amountMultiplier / 10) * 10);
+  const amount  = Number.isFinite(profile.amount)
+    ? Math.max(10, Math.round(profile.amount / 10) * 10)
+    : Math.max(10, Math.round(randInt(5, 80) * 10 * amountMultiplier / 10) * 10);
   const risk    = profile.risk;
-  const termMo  = pick([6, 12, 24, 36]);
+  const termMo  = Number.isFinite(profile.termMonths) ? profile.termMonths : pick([6, 12, 24, 36]);
   // One campaign day represents roughly half a month for repayment pacing.
   const termDays = termMo * 2;
   const rates   = { low: 0.06, medium: 0.12, high: 0.20 };
   const rate    = rates[risk];
   const totalInt = amount * rate * (termMo / 12);
   const dailyPay = (amount + totalInt) / termDays;
-  const reviewed = Boolean(bank.upgrades?.risk_desk);
-  const expectedLoss = amount * BankPortfolio.riskProfile(risk).expectedLossRate * (reviewed ? 0.75 : 1);
+  const deskReviewed = Boolean(bank.upgrades?.risk_desk);
+  const expectedLoss = amount * BankPortfolio.riskProfile(risk).expectedLossRate * (deskReviewed ? 0.75 : 1);
   const riskColour = { low:"green", medium:"yellow", high:"red" }[risk];
-  const fee = Math.max(3, Math.round(amount * 0.01 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier));
-  const denialStanding = risk === "low" ? 2 : 0;
+  const feeRate = 0.01 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier;
 
   return {
     icon: "📝",
@@ -99,7 +113,7 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
     segmentLabel: profile.label,
     customerValue: amount,
     ...communityFields(profile),
-    story: `${name} is asking the bank to back ${purpose}.`,
+    story: `${storySubject} is asking the bank to back ${purpose}.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} credit`,
       amount: fmt(amount),
@@ -115,32 +129,25 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
       { key:"Interest",    val: `${(rate*100).toFixed(0)}% annual → ${fmt(totalInt)} total` },
       { key:"Schedule",    val: `${termDays} daily payments of ${fmt(dailyPay)}` },
       { key:"Expected loss", val: fmt(expectedLoss), cls: riskColour },
-      ...(reviewed ? [{ key:"Loan review desk", val:"Risk reduced 25%", cls:"green" }] : []),
+      ...(deskReviewed ? [{ key:"Loan review desk", val:"Risk reduced 25%", cls:"green" }] : []),
     ],
-    approveLabel: "✅ Approve",
-    denyLabel:    "❌ Deny",
-    choicePreview: {
-      approve: {
-        title: "Back the plan",
-        summary: `${fmt(amount)} leaves the vault today. Earn up to ${fmt(totalInt + fee)} if the loan is repaid.`,
-        tone: risk === "high" ? "risk" : risk === "low" ? "safe" : "balanced",
-      },
-      deny: {
-        title: "Protect the vault",
-        summary: denialStanding ? `Keep the cash, but lose ${denialStanding} standing with a strong applicant.` : "Keep the cash and avoid this credit risk.",
-        tone: denialStanding ? "tradeoff" : "safe",
-      },
-    },
-    single: false,
-    canApprove: () => bank.cash >= amount,
-    cantMsg: "Insufficient funds in the vault.",
-    onApprove() {
-      bank.cash -= amount;
-      bank.loansOut += amount;
+    approveLabel: "Prepare terms",
+    single: true,
+    canApprove: () => true,
+    onApprove(serviceQuality = {}) {
+      const principal = Math.min(amount, Math.max(0, Math.floor((bank.cash * 0.8) / 10) * 10));
+      if (principal < 10) {
+        rememberCommunity(profile, "consultation", { amount: 0, purpose, trustDelta: 0 });
+        return { msg: `The application was prepared, but the vault cannot fund a loan today.`, kind: "warn" };
+      }
+      const reviewed = deskReviewed || serviceQuality.id === "perfect";
+      const fee = Math.max(3, Math.round(principal * feeRate));
+      bank.cash -= principal;
+      bank.loansOut += principal;
       bank.loanBook.push(BankPortfolio.createLoan({
         id: `loan-${bank.day}-${bank.stats.loansApproved + 1}`,
         name,
-        principal: amount,
+        principal,
         risk,
         annualRate: rate,
         termDays,
@@ -151,35 +158,24 @@ function makeLoanEvent(profile = BankMarket.customerProfile(bank, Math.random)) 
       const bump = (risk === "low" ? 2 : 1) + analystBonus;
       bank.rep = Math.min(100, bank.rep + bump);
       bank.stats.loansApproved++;
-      bank.stats.totalIssued += amount;
+      bank.stats.totalIssued += principal;
       BankEconomy.applyTransactionFee(bank, fee, "loanFees");
       rememberCommunity(profile, "loan-approved", {
-        amount, purpose, trustDelta: risk === "high" ? 2 : 1,
+        amount: principal, purpose, trustDelta: risk === "high" ? 2 : 1,
       });
       if (profile.communityId) {
-        BankCommunity.scheduleLoanFollowUp(bank, profile.communityId, "approved", { amount, purpose, risk });
+        BankCommunity.scheduleLoanFollowUp(bank, profile.communityId, "approved", { amount: principal, purpose, risk });
       }
-      return { msg:`Loan of ${fmt(amount)} approved. ${fmt(fee)} fee earned. Reputation +${bump}.`, kind:"good" };
-    },
-    onDeny() {
-      bank.stats.loansDenied++;
-      rememberCommunity(profile, "loan-denied", {
-        amount, purpose, trustDelta: risk === "low" ? -2 : risk === "medium" ? -1 : 0,
-      });
-      if (profile.communityId) {
-        BankCommunity.scheduleLoanFollowUp(bank, profile.communityId, "denied", { amount, purpose, risk });
-      }
-      if (risk === "low") {
-        bank.rep = Math.max(0, bank.rep - 2);
-        return { msg:"Low-risk applicant turned away. Reputation −2.", kind:"warn" };
-      }
-      return { msg:"Risky applicant denied. Sensible call.", kind:"neutral" };
+      const structure = principal < amount ? ` A ${fmt(principal)} line was structured from the ${fmt(amount)} request.` : "";
+      const review = reviewed ? " Careful underwriting reduced its risk." : "";
+      return { msg:`Loan terms prepared and ${fmt(principal)} funded. ${fmt(fee)} service fee earned.${structure}${review}`, kind:"good" };
     },
   };
 }
 
 function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random)) {
-  const who = profile.organization;
+  const who = customerName(profile);
+  const storySubject = customerStorySubject(profile);
   const baseAmount = randInt(20, 150) * 10 + ((bank.upgrades?.safe_deposit || 0) > 0 ? 200 : 0);
   const amountMultiplier = profile.amountMultiplier
     * BankWorld.modifiers(bank).depositAmount
@@ -194,7 +190,7 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
     segmentLabel: profile.label,
     customerValue: amount,
     ...communityFields(profile),
-    story: `${who} wants to place ${fmt(amount)} with the bank.`,
+    story: `${storySubject} wants to place ${fmt(amount)} with the bank.`,
     summary: {
       purpose: `${profile.icon} ${profile.label} deposit`,
       amount: fmt(amount),
@@ -208,8 +204,7 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
       { key:"Risk", val: "LOW", cls: "green" },
       { key:"Effect", val: "Boosts cash, increases liability" },
     ],
-    approveLabel: "✅ Accept",
-    denyLabel:    "❌ Decline",
+    approveLabel: "Post deposit",
     single: true,
     canApprove: () => true,
     onApprove() {
@@ -220,15 +215,11 @@ function makeDepositEvent(profile = BankMarket.customerProfile(bank, Math.random
       rememberCommunity(profile, "deposit", { amount, trustDelta: 1 });
       return { msg:`Deposit of ${fmt(amount)} accepted. Standing +${1 + welcomeBonus}.`, kind:"good" };
     },
-    onDeny() {
-      rememberCommunity(profile, "deposit", { amount, trustDelta: -1 });
-      return { msg:`Deposit from ${who} declined.`, kind:"neutral" };
-    },
   };
 }
 
 function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random)) {
-  const name = profile.id === "households" || profile.id === "miners" ? profile.name : profile.organization;
+  const name = customerName(profile);
   const openingDeposit = Math.max(10, Math.round(randInt(5, 30) * 10 * profile.amountMultiplier / 10) * 10);
   const fee = Math.max(1, Math.round(12 * BankMarket.prestigeModifiers(bank).feeMultiplier * BankCampaign.activePricingEffects(bank).feeMultiplier));
   return {
@@ -253,8 +244,7 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
       { key:"Service fee", val:fmt(fee), cls:"green" },
       { key:"Risk", val:"LOW", cls:"green" },
     ],
-    approveLabel: "Open Account",
-    denyLabel: "Decline",
+    approveLabel: "Open account",
     single: true,
     canApprove: () => true,
     onApprove() {
@@ -265,11 +255,6 @@ function makeAccountEvent(profile = BankMarket.customerProfile(bank, Math.random
       const welcomeBonus = communityLobbyBonus(profile);
       rememberCommunity(profile, "account", { amount: openingDeposit, trustDelta: 1 });
       return { msg:`Account opened for ${name}. ${fmt(fee)} fee earned${welcomeBonus ? " · returning neighbor welcomed" : ""}.`, kind:"good" };
-    },
-    onDeny() {
-      bank.rep = Math.max(0, bank.rep - 1);
-      rememberCommunity(profile, "account", { amount: openingDeposit, trustDelta: -1 });
-      return { msg:`Account request from ${name} declined. Reputation −1.`, kind:"warn" };
     },
   };
 }
@@ -300,21 +285,8 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
       { key:"Risk", val: canPay() ? "LOW" : "HIGH", cls: canPay() ? "green" : "red" },
       { key:"Status", val: canPay() ? "Funds available" : "⚠️ Vault low!", cls: canPay() ? "green" : "red" },
     ],
-    approveLabel: "✅ Honour",
-    denyLabel:    "❌ Refuse",
-    single: canPay(),
-    choicePreview: canPay() ? null : {
-      approve: {
-        title: "Attempt the payout",
-        summary: "The vault is short. Failing to pay will cost 10 standing.",
-        tone: "risk",
-      },
-      deny: {
-        title: "Explain the shortfall",
-        summary: "Keep the remaining cash, but lose 6 standing.",
-        tone: "tradeoff",
-      },
-    },
+    approveLabel: "Count withdrawal",
+    single: true,
     canApprove: () => true,
     onApprove() {
       if (!canPay()) {
@@ -328,12 +300,6 @@ function makeWithdrawalEvent(profile = BankMarket.customerProfile(bank, Math.ran
       const welcomeBonus = communityLobbyBonus(profile);
       rememberCommunity(profile, "withdrawal", { amount, trustDelta: 1 });
       return { msg:`Withdrawal of ${fmt(amount)} processed. ${fmt(fee)} fee earned${welcomeBonus ? " · standing +1" : ""}.`, kind:"neutral" };
-    },
-    onDeny() {
-      const penalty = bank.upgrades?.vault_upgrade ? 4 : (bank.upgrades?.atm || 0) > 0 ? 3 : 6;
-      bank.rep = Math.max(0, bank.rep - penalty);
-      rememberCommunity(profile, "withdrawal", { amount, trustDelta: -2 });
-      return { msg:`Refused withdrawal. Customer furious. Reputation -${penalty}.`, kind:"bad" };
     },
   };
 }
@@ -370,7 +336,6 @@ function makeCommunityFollowUpEvent(followUp) {
       { key: "Standing", val: standing ? `${standing > 0 ? "+" : ""}${standing}` : "No change", cls: standing > 0 ? "green" : standing < 0 ? "red" : "yellow" },
     ],
     approveLabel: "Hear the update",
-    denyLabel: "",
     single: true,
     canApprove: () => true,
     onApprove() {
@@ -379,9 +344,6 @@ function makeCommunityFollowUpEvent(followUp) {
         msg: resolved?.presentation.result || "Customer update recorded.",
         kind: standing > 0 ? "good" : standing < 0 ? "warn" : "neutral",
       };
-    },
-    onDeny() {
-      return this.onApprove();
     },
   };
 }
@@ -574,6 +536,7 @@ function makeWorldEvent(forcedEventId = null) {
     title: event.title,
     worldEventId: event.id,
     isNarrative: true,
+    story: event.description,
     summary: {
       purpose: event.category,
       amount: first.cost ? fmt(first.cost) : "Policy",
@@ -588,6 +551,10 @@ function makeWorldEvent(forcedEventId = null) {
     ],
     approveLabel: first.label,
     denyLabel: second.label,
+    choicePreview: {
+      approve: { title: "First response", summary: first.result, tone: first.kind === "good" ? "balanced" : "tradeoff" },
+      deny: { title: "Alternative response", summary: second.result, tone: second.kind === "good" ? "balanced" : "neutral" },
+    },
     single: false,
     canApprove: () => !first.cost || bank.cash >= first.cost,
     cantMsg: first.cost ? `This response requires ${fmt(first.cost)} in cash.` : "",

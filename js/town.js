@@ -111,13 +111,13 @@
 
   function identity(bank) {
     migrate(bank);
-    const approved = Math.max(0, Number(bank.stats?.loansApproved) || 0);
-    const denied = Math.max(0, Number(bank.stats?.loansDenied) || 0);
     const trust = Object.values(bank.community?.relationships || {})
       .reduce((sum, relationship) => sum + (Number(relationship?.trust) || 0), 0);
     const cautiousSignals = bank.town.choices.filter(entry => ["self-fund", "collateral", "repair"].includes(entry.choice)).length;
     const communitySignals = bank.town.choices.filter(entry => ["survey", "bridge", "cooperative"].includes(entry.choice)).length;
-    if (cautiousSignals >= 2 || denied > approved + 1) {
+    const perfect = Math.max(0, Number(bank.stats?.perfectServices) || 0);
+    const rushed = Math.max(0, Number(bank.stats?.rushedServices) || 0);
+    if (cautiousSignals >= 2 || perfect >= rushed + 8) {
       return {
         id: "steward",
         title: "The Careful Steward",
@@ -160,8 +160,8 @@
         customersServed: Math.max(0, Number(bank.stats?.customersServed) || 0),
         knownCustomers,
         trustedCustomers,
-        loansApproved: Math.max(0, Number(bank.stats?.loansApproved) || 0),
-        loansDenied: Math.max(0, Number(bank.stats?.loansDenied) || 0),
+        loansPrepared: Math.max(0, Number(bank.stats?.loansApproved) || 0),
+        perfectServices: Math.max(0, Number(bank.stats?.perfectServices) || 0),
       },
     };
   }

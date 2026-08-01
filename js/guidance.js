@@ -6,20 +6,20 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createGuidance() {
   const TIPS = Object.freeze([
     Object.freeze({
-      id: "welcome", stage: "Getting started", title: "Five appointments make a day",
-      body: "Your wicket is already open. Routine requests take one tap; loan requests ask you to balance the customer's plan against the bank's cash, capital, and standing.",
+      id: "welcome", stage: "Opening shift", title: "Serve with rhythm, not panic",
+      body: "Your wicket is open for sixty seconds. Start a service, then tap when the moving marker enters the green zone. A miss still progresses; accurate work earns more.",
       action: "teller", actionLabel: "View controls",
       eligible: bank => bank.day === 1 && (bank.stats?.customersServed || 0) === 0,
     }),
     Object.freeze({
       id: "liquidity", stage: "Banking fundamentals", title: "Cash and profit are different",
-      body: "A loan reduces cash but creates a loan asset. Deposits add cash but remain money owed to customers. Watch net capital and the next-payment forecast together.",
+      body: "Preparing a loan turns cash into a loan asset. A perfect service review improves its underwriting; the loan schedule and expected loss remain visible in Manage.",
       action: "ledger", actionLabel: "Open ledger",
       eligible: bank => (bank.stats?.loansApproved || 0) >= 1 || (bank.loansOut || 0) > 0,
     }),
     Object.freeze({
       id: "staffing", stage: "Delegation", title: "Your first hire changes the loop",
-      body: "After you know the daily rhythm, hire a teller to handle routine services. Wages continue even on quiet days, so add payroll deliberately.",
+      body: "After you know the shift rhythm, hire Mara to clear routine services automatically while you concentrate on loan files. Wages continue every day.",
       action: "manage", actionLabel: "Open Manage",
       eligible: bank => (bank.stats?.customersServed || 0) >= 10 && !(bank.staff || []).length,
     }),
@@ -37,7 +37,7 @@
     }),
     Object.freeze({
       id: "recovery", stage: "Financial pressure", title: "A warning is not a game over",
-      body: "Low liquidity is a warning, not a game over. Protect cash by declining optional loans and review the repayment schedule before the next day.",
+      body: "Low liquidity is a warning, not a game over. New consultations will structure smaller loans automatically; pause improvements and review upcoming repayments before tomorrow's shift.",
       action: "manage", actionLabel: "Review recovery tools",
       eligible: bank => (bank.cash || 0) < 800 || ((bank.deposits || 0) > 0 && bank.cash / bank.deposits < 0.15),
     }),

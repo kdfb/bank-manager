@@ -5,7 +5,7 @@ const Town = require("../js/town.js");
 function bankFixture(overrides = {}) {
   return {
     day: 1,
-    stats: { loansApproved: 0, loansDenied: 0, customersServed: 0 },
+    stats: { loansApproved: 0, customersServed: 0, perfectServices: 0, rushedServices: 0 },
     community: { relationships: {} },
     ...overrides,
   };
@@ -44,7 +44,7 @@ test("town choices migrate idempotently and ignore unknown legacy data", () => {
 test("the ending reflects both the mill outcome and the bank's operating identity", () => {
   const bank = bankFixture({
     day: 7,
-    stats: { loansApproved: 5, loansDenied: 0, customersServed: 26 },
+    stats: { loansApproved: 5, customersServed: 26, perfectServices: 9, rushedServices: 4 },
     community: { relationships: { carmen: { visits: 3, trust: 4 }, elena: { visits: 3, trust: 4 }, samir: { visits: 2, trust: 3 } } },
   });
   Town.recordChoice(bank, "mill-survey", "survey");
@@ -57,8 +57,8 @@ test("the ending reflects both the mill outcome and the bank's operating identit
   assert.equal(summary.metrics.knownCustomers, 3);
 });
 
-test("a guarded lending pattern earns the careful steward identity", () => {
-  const bank = bankFixture({ day: 7, stats: { loansApproved: 1, loansDenied: 4, customersServed: 20 } });
+test("a measured town strategy earns the careful steward identity", () => {
+  const bank = bankFixture({ day: 7, stats: { loansApproved: 1, customersServed: 20, perfectServices: 10, rushedServices: 1 } });
   Town.recordChoice(bank, "mill-survey", "self-fund");
   Town.recordChoice(bank, "supplier-note", "collateral");
   Town.complete(bank, "repair");
