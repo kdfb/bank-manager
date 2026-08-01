@@ -26,6 +26,7 @@ let pinchStartZoom = 1;
 let suppressCanvasClickUntil = 0;
 let dayFinishQueued = false;
 let staffToastTimer = null;
+let activeService = null;
 
 const WESTERN_CHARACTER_ATLAS = "assets/western/characters-atlas.png";
 const WESTERN_FURNITURE_ATLAS = "assets/western/furniture-atlas.png";
@@ -141,11 +142,14 @@ function requestCanvasResize() {
 function bindBranchInput() {
   window.addEventListener("keydown", e => {
     const key = e.key.toLowerCase();
-    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "e", "enter", "b", "escape", "r"].includes(key)) e.preventDefault();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "e", "enter", " ", "b", "escape", "r"].includes(key)) e.preventDefault();
     keysDown[key] = true;
     if (key === "b") toggleBuildMode();
     if (key === "escape") closeTopMode();
-    if (key === "e" || key === "enter") interactWithCustomer();
+    if ((key === "e" || key === "enter" || key === " ") && !e.repeat) {
+      if (activeService) performServiceStep();
+      else interactWithCustomer();
+    }
     if (key === "r" && branchState.mode === "build") rotateBuildItem();
   });
   window.addEventListener("keyup", e => { keysDown[e.key.toLowerCase()] = false; });
@@ -288,6 +292,7 @@ function branchLoop(ts) {
     return;
   }
   if (decisionOpen) {
+    if (activeService) updateActiveService(ts);
     if (ts - lastModalDrawAt >= 250) {
       lastModalDrawAt = ts;
       updateInteractionPrompt();
@@ -331,8 +336,7 @@ function maybeStaffServe() {
   if (performance.now() < branchState.nextStaffServiceAt) return;
   const member = BankOperations.selectStaffForEvent(bank, customer.event.eventType);
   if (!member) return;
-  const choice = staffDecisionFor(customer.event, member);
-  autoResolveCustomer(customer, false, member, choice);
+  autoResolveCustomer(customer, false, member);
   branchState.nextStaffServiceAt = performance.now()
     + BankOperations.serviceIntervalMs(bank, customer.event.eventType) * BankWorld.modifiers(bank).serviceInterval;
 }
@@ -388,15 +392,14 @@ function maybeSpawnCustomer() {
   if (!branchState.openForCustomers) return;
   if (typeof location !== "undefined" && new URLSearchParams(location.search).get("debugNoCustomers") === "1") return;
   const activeCustomers = branchState.customers.filter(c => c.state !== "leaving").length;
-  const appointmentTarget = BankOperations.dailyAppointmentTarget(bank);
-  if (branchState.spawnedCount >= appointmentTarget || activeCustomers >= 2) return;
+  if (activeCustomers >= 3) return;
   if (branchState.spawnedCount < qIdx) branchState.spawnedCount = qIdx;
   if (performance.now() < branchState.nextSpawnAt) return;
   if (branchState.spawnedCount >= queue.length) queue.push(makeCustomerEvent());
   const idx = branchState.spawnedCount;
   branchState.spawnedCount++;
   branchState.nextSpawnAt = performance.now()
-    + randInt(2800, 4500)
+    + randInt(2200, 3400)
       * BankWorld.modifiers(bank).spawnInterval
       / BankCampaign.activePricingEffects(bank).customerDemand
       / BankMarket.locationProfile(bank).growth;
@@ -1070,7 +1073,7 @@ function updateInteractionPrompt() {
     ? "Press A"
     : touchLayout ? "Tap Serve" : "Press E";
   const touchButton = document.getElementById("touchActionBtn");
-  if (branchState.tellerLocked && ready) el.textContent = `${action} · Review customer`;
+  if (branchState.tellerLocked && ready) el.textContent = `${action} · Start service`;
   else if (branchState.tellerLocked) el.textContent = "Wicket open · waiting for a customer";
   else if (nearWicket) el.textContent = `${action} · Open teller wicket`;
   if (touchButton) touchButton.textContent = branchState.tellerLocked ? (ready ? "Review" : "Leave counter") : "Open counter";
@@ -1087,22 +1090,22 @@ function renderBranchStatus(force = false) {
   const fill = document.getElementById("queueFill");
   if (!count || !wait || !capacity || !fill) return;
 
-  const target = BankOperations.dailyAppointmentTarget(bank);
-  const completed = Math.min(target, qIdx);
-  count.textContent = `Today ${completed} / ${target}`;
+  const target = BankOperations.dailyServiceGoal(bank);
+  const completed = bank.dayMetrics?.customersServed || 0;
+  count.textContent = `${completed} served · goal ${target}`;
   wait.textContent = health.count
     ? `${health.count} waiting${health.atRisk ? " · needs attention" : ""}`
-    : completed >= target ? "Appointments complete" : "Next customer soon";
+    : branchState?.openForCustomers === false ? "Shift closed" : "Next customer soon";
   const staffing = BankOperations.staffingSummary(bank);
   const serviceModifier = BankWorld.modifiers(bank).serviceInterval;
   const serviceParts = [];
-  if (staffing.counter) serviceParts.push("Mara handles routine service · You decide every loan");
-  if (staffing.loans) serviceParts.push(`Loans ${(staffing.loanIntervalMs * serviceModifier / 1000).toFixed(1)}s`);
+  if (staffing.counter) serviceParts.push("Mara handles routine service · You prepare loan files");
+  if (staffing.loans) serviceParts.push(`Loan desk clears a file every ${(staffing.loanIntervalMs * serviceModifier / 1000).toFixed(1)}s`);
   capacity.textContent = serviceParts.length
     ? serviceParts.join(" · ")
     : bank.staff?.length ? "Staff need a matching workstation"
       : branchState?.tellerLocked ? "Your wicket is open" : "Wicket closed";
-  fill.style.width = `${Math.round(completed / target * 100)}%`;
+  fill.style.width = `${Math.min(100, Math.round(completed / target * 100))}%`;
   fill.style.background = completed >= target ? "var(--yellow)" : "var(--green)";
   updateModeBanner();
 }
@@ -1146,15 +1149,108 @@ function interactWithCustomer() {
 function openDecisionOverlay(event, customerId) {
   branchState.activeDecisionCustomerId = customerId;
   decisionOpen = true;
-  renderEvent();
+  const service = !event.isNarrative && typeof BankService !== "undefined"
+    ? BankService.definition(event.eventType)
+    : null;
+  if (service) {
+    activeService = {
+      customerId,
+      definition: service,
+      stepIndex: 0,
+      position: 0,
+      direction: 1,
+      lastTs: performance.now(),
+      target: BankService.targetFor(event.eventType, 0, customerId),
+      judgments: [],
+      locked: false,
+    };
+    renderServiceEvent(event, activeService);
+  } else {
+    activeService = null;
+    renderEvent();
+  }
   setDecisionLayerVisible(true);
   BankAudio.play("customerReady");
 }
 
 function closeDecisionOverlay() {
   decisionOpen = false;
+  activeService = null;
   branchState.activeDecisionCustomerId = null;
   setDecisionLayerVisible(false);
+}
+
+function updateActiveService(ts) {
+  if (!activeService || activeService.locked) return;
+  const elapsed = Math.min(0.05, Math.max(0, (ts - activeService.lastTs) / 1000));
+  activeService.lastTs = ts;
+  const speed = 0.72 + activeService.stepIndex * 0.08;
+  activeService.position += activeService.direction * speed * elapsed;
+  if (activeService.position >= 1) {
+    activeService.position = 1;
+    activeService.direction = -1;
+  } else if (activeService.position <= 0) {
+    activeService.position = 0;
+    activeService.direction = 1;
+  }
+  const marker = document.getElementById("serviceTimingMarker");
+  if (marker) marker.style.left = `${activeService.position * 100}%`;
+}
+
+function performServiceStep() {
+  if (!activeService || activeService.locked) return false;
+  const customer = branchState.customers.find(entry => entry.id === activeService.customerId);
+  if (!customer) return false;
+  const judgment = BankService.judge(activeService.position, activeService.target);
+  activeService.judgments.push(judgment);
+  const feedback = document.getElementById("serviceHitFeedback");
+  if (feedback) {
+    feedback.textContent = judgment.label;
+    feedback.className = `service-hit-feedback ${judgment.id}`;
+  }
+  BankAudio.play(judgment.id === "perfect" ? "positive" : judgment.id === "steady" ? "neutral" : "warning");
+  activeService.locked = true;
+  if (activeService.stepIndex + 1 < activeService.definition.steps.length) {
+    setTimeout(() => {
+      if (!activeService || activeService.customerId !== customer.id) return;
+      activeService.stepIndex++;
+      activeService.position = activeService.stepIndex % 2 ? 1 : 0;
+      activeService.direction = activeService.stepIndex % 2 ? -1 : 1;
+      activeService.lastTs = performance.now();
+      activeService.target = BankService.targetFor(customer.event.eventType, activeService.stepIndex, customer.id);
+      activeService.locked = false;
+      renderServiceEvent(customer.event, activeService);
+    }, 240);
+    return true;
+  }
+  const summary = BankService.summarize(activeService.judgments);
+  setTimeout(() => completeServiceCustomer(customer, summary), 260);
+  return true;
+}
+
+function completeServiceCustomer(customer, serviceSummary) {
+  if (!customer || customer.state === "leaving") return false;
+  const ev = customer.event;
+  const res = ev.onApprove(serviceSummary);
+  if (serviceSummary.id === "perfect") {
+    BankEconomy.applyTransactionFee(bank, 3, "serviceQualityBonus");
+    bank.rep = Math.min(100, bank.rep + 1);
+  }
+  bank.dayMetrics.servicePoints = (bank.dayMetrics.servicePoints || 0) + serviceSummary.points;
+  bank.dayMetrics.serviceSteps = (bank.dayMetrics.serviceSteps || 0) + serviceSummary.steps;
+  bank.dayMetrics[`${serviceSummary.id}Services`] = (bank.dayMetrics[`${serviceSummary.id}Services`] || 0) + 1;
+  bank.stats[`${serviceSummary.id}Services`] = (bank.stats[`${serviceSummary.id}Services`] || 0) + 1;
+  BankAudio.playOutcome(res.kind);
+  recordCustomerService(customer, false);
+  ev.resolved = true;
+  addLog(`${res.msg} · ${serviceSummary.label} service.`, res.kind);
+  customer.state = "leaving";
+  closeDecisionOverlay();
+  advanceResolvedQueue();
+  renderStats();
+  saveGame();
+  if (checkLose()) { stopTimers(); return false; }
+  return true;
 }
 
 function resolveCustomer(customerId, choice) {
@@ -1175,11 +1271,14 @@ function resolveCustomer(customerId, choice) {
   maybeFinishAppointmentDay();
 }
 
-function autoResolveCustomer(customer, silent = false, staffMember = null, forcedChoice = null) {
+function autoResolveCustomer(customer, silent = false, staffMember = null) {
   if (!customer || customer.state === "leaving") return true;
   const ev = customer.event;
-  const approve = forcedChoice ? forcedChoice === "approve" : (ev.single || ev.eventType !== "Credit Application");
-  const res = approve ? ev.onApprove() : ev.onDeny();
+  const res = ev.onApprove(BankService?.QUALITY?.steady || { id: "steady", label: "Steady", points: 2, steps: 1 });
+  bank.dayMetrics.servicePoints = (bank.dayMetrics.servicePoints || 0) + 2;
+  bank.dayMetrics.serviceSteps = (bank.dayMetrics.serviceSteps || 0) + 1;
+  bank.dayMetrics.steadyServices = (bank.dayMetrics.steadyServices || 0) + 1;
+  bank.stats.steadyServices = (bank.stats.steadyServices || 0) + 1;
   recordCustomerService(customer, staffMember);
   ev.resolved = true;
   if (!silent) addLog(`${staffMember ? staffMember.name : "Auto"}: ${res.msg}`, res.kind);
@@ -1199,7 +1298,7 @@ function showStaffServiceToast(staffMember, event) {
   const service = event.eventType === "Deposit Proposal" ? "deposit"
     : event.eventType === "Withdrawal Demand" ? "withdrawal"
       : event.eventType === "Account Opening" ? "new account"
-        : "appointment";
+        : "service";
   toast.innerHTML = `<strong>${staffMember.name}</strong><span>Handled ${service} for ${event.title}</span>`;
   toast.classList.add("show");
   staffToastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
@@ -1238,8 +1337,7 @@ function branchAutoResolve(silent = false) {
   if (customer) return autoResolveCustomer(customer, silent);
   const ev = queue[qIdx];
   if (!ev) return true;
-  const approve = ev.single || ev.eventType !== "Credit Application";
-  const res = approve ? ev.onApprove() : ev.onDeny();
+  const res = ev.onApprove(BankService?.QUALITY?.steady || { id: "steady", label: "Steady", points: 2, steps: 1 });
   ev.resolved = true;
   if (!silent) addLog(`Auto: ${res.msg}`, res.kind);
   advanceResolvedQueue();
@@ -1255,6 +1353,7 @@ function startBranchDay() {
   branchState.nextSpawnAt = performance.now() + 800;
   branchState.nextStaffServiceAt = performance.now() + 3200;
   branchState.activeDecisionCustomerId = null;
+  activeService = null;
   branchState.openForCustomers = true;
   const hasCounterStaff = BankOperations.activeStaff(bank, "counter").length > 0;
   branchState.tellerLocked = !hasCounterStaff;
@@ -1274,9 +1373,9 @@ function advanceResolvedQueue() {
 
 function maybeFinishAppointmentDay() {
   if (dayFinishQueued || bank.phase !== "operating") return false;
-  const target = BankOperations.dailyAppointmentTarget(bank);
+  if (branchState.openForCustomers) return false;
   const remaining = branchState.customers.some(customer => customer.state !== "leaving");
-  if (branchState.spawnedCount < target || qIdx < target || remaining) return false;
+  if (qIdx < queue.length || remaining) return false;
   dayFinishQueued = true;
   branchState.openForCustomers = false;
   setTimeout(() => {

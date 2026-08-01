@@ -72,6 +72,11 @@
       customersLost: 0,
       totalWaitSeconds: 0,
       maxQueue: 0,
+      servicePoints: 0,
+      serviceSteps: 0,
+      perfectServices: 0,
+      steadyServices: 0,
+      rushedServices: 0,
     };
   }
 
@@ -98,6 +103,9 @@
     bank.stats.loansRepaid = bank.stats.loansRepaid || 0;
     bank.stats.worldEventsResolved = bank.stats.worldEventsResolved || 0;
     bank.stats.customersLost = bank.stats.customersLost || 0;
+    bank.stats.perfectServices = bank.stats.perfectServices || 0;
+    bank.stats.steadyServices = bank.stats.steadyServices || 0;
+    bank.stats.rushedServices = bank.stats.rushedServices || 0;
     const existingMetrics = bank.dayMetrics || {};
     resetDayMetrics(bank);
     bank.dayMetrics = { ...bank.dayMetrics, ...existingMetrics };

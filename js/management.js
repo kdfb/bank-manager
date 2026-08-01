@@ -126,16 +126,6 @@ function sellLoanParticipation() {
   }
 }
 
-function staffDecisionFor(event, member) {
-  if (!member || event.eventType !== "Credit Application") return "approve";
-  return BankEconomy.canPolicyApproveLoan(
-    bank.lendingPolicy,
-    event.risk,
-    bank.cash,
-    event.amount
-  ) ? "approve" : "deny";
-}
-
 function serviceTimeLabel(milliseconds) {
   return Number.isFinite(milliseconds) ? `${(milliseconds / 1000).toFixed(1)}s` : "Manual only";
 }
@@ -288,7 +278,7 @@ function renderEndOfDayReward() {
     return `<section class="day-reward-card">
       <div class="panel-kicker">A sustainable next step</div>
       <h3>You cannot do every transaction forever.</h3>
-      <p><strong>${candidate.name}</strong> can handle deposits, withdrawals, and new accounts. You will still make every loan and customer follow-up decision.</p>
+      <p><strong>${candidate.name}</strong> can handle deposits, withdrawals, and new accounts. You will still prepare loan files and guide after-hours strategy.</p>
       <button class="btn btn-green" onclick="hireMaraFromReward()" ${bank.cash < candidate.hireCost ? "disabled" : ""}>Hire Mara · ${fmt(candidate.hireCost)} now · ${fmt(candidate.dailyWage)}/day</button>
     </section>`;
   }
@@ -316,9 +306,9 @@ function renderOperations() {
       <section class="operations-card operations-wide">
         <div class="panel-kicker">Team</div>
         ${mara ? `<h3>Mara Chen runs the public counter</h3>
-          <p>She handles routine appointments automatically. Loans and returning-customer follow-ups always come to you.</p>
-          <div class="ops-metrics"><div><span>Daily wage</span><strong>${fmt(mara.dailyWage)}</strong></div><div><span>Appointments handled</span><strong>${mara.served || 0}</strong></div></div>`
-        : `<h3>Your first teller</h3><p>Mara Chen can remove routine repetition without taking over the choices that define the bank.</p>
+          <p>She clears routine services automatically while you handle the longer loan files and keep the shift moving.</p>
+          <div class="ops-metrics"><div><span>Daily wage</span><strong>${fmt(mara.dailyWage)}</strong></div><div><span>Customers served</span><strong>${mara.served || 0}</strong></div></div>`
+        : `<h3>Your first teller</h3><p>Mara Chen removes routine service pressure so you can concentrate on loan files and after-hours strategy.</p>
           <button class="btn btn-green" onclick="hireStaff('mara-chen')" ${bank.cash < 600 ? "disabled" : ""}>Hire Mara · ${fmt(600)}</button>`}
       </section>
       <section class="operations-card operations-wide">
@@ -371,9 +361,9 @@ function renderOperations() {
     !bank.staff.some(member => member.id === candidate.id)
   );
   const policies = [
-    ["conservative", "Conservative", "Approve low-risk loans only."],
-    ["balanced", "Balanced", "Approve low- and medium-risk loans."],
-    ["growth", "Growth", "Approve any affordable loan; defaults will be higher."],
+    ["conservative", "Conservative", "Favor smaller, lower-risk loan terms."],
+    ["balanced", "Balanced", "Balance useful lending with reserve protection."],
+    ["growth", "Growth", "Favor larger terms; defaults will be higher."],
   ];
 
   body.innerHTML = `
@@ -423,7 +413,7 @@ function renderOperations() {
         </section>` : ""}` : `
         <section class="operations-card operations-wide discovery-card">
           <div><div class="panel-kicker">Next management system</div><h3>Staffing unlocks after ten customers</h3></div>
-          <p>For now, learn the daily rhythm. After ten appointments, the hiring board and Build mode open together so every new tool has an immediate purpose.</p>
+          <p>For now, learn the daily rhythm. After ten customers, the hiring board and Build mode open together so every new tool has an immediate purpose.</p>
           <div class="discovery-progress"><i style="width:${Math.min(100, (bank.stats.customersServed || 0) / 10 * 100)}%"></i></div>
           <strong>${bank.stats.customersServed || 0} / 10 customers served</strong>
         </section>`}
@@ -493,7 +483,7 @@ function renderOperations() {
         </div>
         ${portfolio.loans.length
           ? `<div class="loan-schedule">${portfolio.loans.slice(0, 8).map(renderLoanScheduleRow).join("")}</div>`
-          : `<p class="portfolio-empty">Approved credit applications will appear here with their payment schedule and forecast risk.</p>`}
+          : `<p class="portfolio-empty">Prepared loan files will appear here with their payment schedule and forecast risk.</p>`}
       </section>` : ""}
 
       ${features.credit ? `<section class="operations-card">

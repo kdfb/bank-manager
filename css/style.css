@@ -1898,13 +1898,14 @@ body.modal-open .zoom-controls { display: none !important; }
 }
 
 .stat-date,
-.stat-clock,
 .stat-loans,
 .stat-deposits,
 .stat-debt { display: none !important; }
 
+.stat-clock { display: block !important; }
+
 .desk-ledger-strip {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   overflow: visible;
 }
 
@@ -2042,11 +2043,105 @@ body.modal-open .zoom-controls { display: none !important; }
 .report-details { margin: 4px 12px 0; border-top: 1px solid rgba(38,23,13,.18); }
 .report-details summary { padding: 9px 0; color: #684e34; font-size: 10px; font-weight: 800; cursor: pointer; }
 
+.decision-card.service-active {
+  overflow: hidden;
+  background: linear-gradient(155deg, #f1dfb8, #dfc18d);
+}
+.service-head { position: relative; padding-right: 92px; }
+.service-request-label {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 7px;
+  border: 1px solid rgba(77, 100, 58, .35);
+  border-radius: 999px;
+  background: rgba(91, 121, 71, .14);
+  color: #405535;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.service-customer-need {
+  margin: 0;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(38, 23, 13, .15);
+  color: #4f3a25;
+  font: 600 12px/1.4 Georgia, "Times New Roman", serif;
+}
+.service-step-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 10px 14px 2px;
+  list-style: none;
+}
+.service-step-list li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  min-height: 28px;
+  color: #7a654c;
+  font-size: 10px;
+  font-weight: 700;
+}
+.service-step-list li > span {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid rgba(74, 52, 30, .26);
+  border-radius: 50%;
+  font-size: 8px;
+}
+.service-step-list li strong { color: #7d674e; font-size: 8px; letter-spacing: .05em; text-transform: uppercase; }
+.service-step-list li.current { color: #2c2115; }
+.service-step-list li.current > span { border-color: #567346; background: #567346; color: #fff8e8; }
+.service-step-list li.done { opacity: .68; }
+.service-step-list li.done.perfect strong { color: #47783f; }
+.service-step-list li.done.rushed strong { color: #9a5b3e; }
+.service-timing-wrap { padding: 10px 14px 4px; }
+.service-timing-copy { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.service-timing-copy strong { color: #2b2116; font-size: 11px; }
+.service-timing-copy span { color: #745f46; font-size: 9px; }
+.service-timing-track {
+  position: relative;
+  height: 26px;
+  overflow: hidden;
+  border: 2px solid #5a4128;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #bc7755, #d8a961 45%, #d8a961 55%, #bc7755);
+  box-shadow: inset 0 2px 5px rgba(35, 20, 10, .32);
+}
+.service-timing-good,
+.service-timing-perfect,
+.service-timing-marker { position: absolute; top: 0; bottom: 0; }
+.service-timing-good { background: #84ad68; }
+.service-timing-perfect { z-index: 1; background: #c2da87; }
+.service-timing-marker {
+  z-index: 2;
+  width: 4px;
+  border-radius: 3px;
+  background: #fff8de;
+  box-shadow: 0 0 0 2px #2d2015, 0 0 8px rgba(255, 248, 222, .8);
+  transform: translateX(-50%);
+}
+.service-hit-feedback { min-height: 20px; padding-top: 4px; text-align: center; font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.service-hit-feedback.perfect { color: #3f7138; }
+.service-hit-feedback.steady { color: #765d34; }
+.service-hit-feedback.rushed { color: #9a4d38; }
+.service-action-btn { display: block; width: calc(100% - 28px); min-height: 46px; margin: 2px 14px 0; font-size: 13px; }
+.service-quality-key { display: flex; justify-content: space-between; gap: 8px; padding: 7px 14px 12px; color: #746149; font-size: 8px; }
+.after-hours-choice { margin: 10px 12px; padding: 12px; border: 1px solid rgba(104, 78, 52, .3); border-radius: 7px; background: rgba(255, 248, 227, .44); }
+.after-hours-choice h3 { margin: 4px 0 6px; color: #352415; font: 700 17px/1.2 Georgia, "Times New Roman", serif; }
+.after-hours-choice > p { margin: 0; color: #67533c; font-size: 10px; line-height: 1.45; }
+.after-hours-choice .choice-grid { padding-right: 0; padding-left: 0; }
+
 body.at-teller .control-hints { display: none; }
 
 @media (max-width: 760px) {
   .hud-actions { grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); }
-  .desk-ledger-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .desk-ledger-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   body.at-teller .touch-dpad { visibility: hidden; pointer-events: none; }
   .desk-event-layer { width: min(430px, calc(100vw - 12px)); }
   .event-story { padding: 10px 12px 2px; font-size: 13px; }
@@ -2058,6 +2153,13 @@ body.at-teller .control-hints { display: none; }
   .day-result { margin: 9px 10px; }
   .day-summary-grid { margin: 0 10px; }
   .next-obligation, .town-report-thread, .report-details { margin-right: 10px; margin-left: 10px; }
+  .decision-card.service-active { max-height: min(58vh, 480px); }
+  .service-customer-need { max-height: 50px; overflow: hidden; padding: 8px 12px; }
+  .service-step-list { padding: 7px 12px 0; }
+  .service-timing-wrap { padding: 8px 12px 2px; }
+  .service-action-btn { width: calc(100% - 24px); margin-right: 12px; margin-left: 12px; }
+  .service-quality-key { padding: 6px 12px 10px; }
+  .after-hours-choice { margin-right: 10px; margin-left: 10px; }
 }
 
 @media (max-width: 900px) and (max-height: 500px) {

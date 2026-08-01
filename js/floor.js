@@ -11,7 +11,7 @@ const FLOOR_UPGRADES = [
     icon:  "🪟",
     cost:  250,
     size:  [1, 1],
-    desc:  "Mara handles routine appointments 30% faster.",
+    desc:  "Mara clears routine services 30% faster during the shift.",
   },
   {
     id:    "risk_desk",

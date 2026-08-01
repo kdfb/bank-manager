@@ -8,7 +8,7 @@
   const DEFINITIONS = Object.freeze([
     Object.freeze({ id: "FIRST_DAY", title: "First Day's Ledger", description: "Complete the first business day.", test: bank => bank.day >= 2 }),
     Object.freeze({ id: "FIRST_CUSTOMER", title: "Open for Business", description: "Serve the first customer personally or through staff.", test: bank => (bank.stats?.customersServed || 0) >= 1 }),
-    Object.freeze({ id: "FIRST_LOAN", title: "Capital at Work", description: "Approve the bank's first loan.", test: bank => (bank.stats?.loansApproved || 0) >= 1 }),
+    Object.freeze({ id: "FIRST_LOAN", title: "Capital at Work", description: "Prepare the bank's first loan.", test: bank => (bank.stats?.loansApproved || 0) >= 1 }),
     Object.freeze({ id: "FIRST_HIRE", title: "No Longer Alone", description: "Hire the first member of staff.", test: bank => (bank.staff || []).length >= 1 }),
     Object.freeze({ id: "DELEGATION", title: "Trust the Team", description: "Have staff serve ten customers.", test: bank => (bank.stats?.staffServed || 0) >= 10 }),
     Object.freeze({ id: "FURNISHED_BRANCH", title: "Built to Serve", description: "Place three functional branch upgrades.", test: bank => Object.values(bank.upgrades || {}).reduce((sum, count) => sum + Math.max(0, Number(count) || 0), 0) >= 3 }),

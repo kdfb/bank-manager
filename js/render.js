@@ -146,8 +146,60 @@ function renderTownReportThread() {
   </section>`;
 }
 
+function renderAfterHoursTownChoice(momentId) {
+  if (!momentId || typeof BankTown === "undefined") return "";
+  const moment = BankTown.MOMENTS.find(entry => entry.id === momentId);
+  if (!moment) return "";
+  const event = makeTownProjectEvent(moment);
+  const preview = event.choicePreview || {};
+  return `<section class="after-hours-choice">
+    <div class="panel-kicker">After hours · Take your time</div>
+    <h3>${event.title}</h3>
+    <p>${event.story}</p>
+    <div class="choice-grid" aria-label="Town project options">
+      <button class="choice-card ${preview.deny?.tone || "neutral"}" onclick="resolveAfterHoursTown('left')">
+        <span>${preview.deny?.title || "First path"}</span>
+        <strong>${event.denyLabel}</strong>
+        <small>${preview.deny?.summary || "Choose the smaller commitment."}</small>
+      </button>
+      <button class="choice-card ${preview.approve?.tone || "balanced"}" onclick="resolveAfterHoursTown('right')" ${!event.canApprove() ? "disabled" : ""}>
+        <span>${preview.approve?.title || "Second path"}</span>
+        <strong>${event.approveLabel}</strong>
+        <small>${preview.approve?.summary || "Choose the larger commitment."}</small>
+      </button>
+    </div>
+    ${!event.canApprove() && event.cantMsg ? `<div class="cant-fund">${event.cantMsg}</div>` : ""}
+  </section>`;
+}
+
+function renderAfterHoursWorldChoice(eventId) {
+  if (!eventId || typeof BankWorld === "undefined") return "";
+  const event = makeWorldEvent(eventId);
+  if (!event) return "";
+  const preview = event.choicePreview || {};
+  return `<section class="after-hours-choice">
+    <div class="panel-kicker">After hours · Take your time</div>
+    <h3>${event.title}</h3>
+    <p>${event.story}</p>
+    <div class="choice-grid" aria-label="Regional event options">
+      <button class="choice-card ${preview.deny?.tone || "neutral"}" onclick="resolveAfterHoursWorld('left')">
+        <span>${preview.deny?.title || "Second path"}</span>
+        <strong>${event.denyLabel}</strong>
+        <small>${preview.deny?.summary || "Choose the measured response."}</small>
+      </button>
+      <button class="choice-card ${preview.approve?.tone || "balanced"}" onclick="resolveAfterHoursWorld('right')" ${!event.canApprove() ? "disabled" : ""}>
+        <span>${preview.approve?.title || "First path"}</span>
+        <strong>${event.approveLabel}</strong>
+        <small>${preview.approve?.summary || "Choose the more ambitious response."}</small>
+      </button>
+    </div>
+    ${!event.canApprove() && event.cantMsg ? `<div class="cant-fund">${event.cantMsg}</div>` : ""}
+  </section>`;
+}
+
 function renderEndOfDayLegacy(loanIncome, depInt, overhead, dayDelta) {
   const card       = document.getElementById("eventCard");
+  card.classList.remove("service-active");
   decisionOpen = true;
   setDecisionLayerVisible(true);
   const deltaColor = dayDelta >= 0 ? "var(--green)" : "var(--red)";
@@ -193,13 +245,24 @@ function renderEndOfDay(report) {
     defaultCount: defaults > 0 ? 1 : 0,
   };
   const portfolio = report.portfolio || BankPortfolio.portfolioSummary(bank.loanBook, bank.day);
+  const service = report.service || {
+    served: bank.dayMetrics.customersServed || 0,
+    lost: bank.dayMetrics.customersLost || 0,
+    accuracy: 0,
+    perfect: 0,
+    steady: 0,
+    rushed: 0,
+  };
   const card = document.getElementById("eventCard");
+  card.classList.remove("service-active");
   const nextDebt = BankEconomy.nextDebtPayment({ ...bank, day: bank.day + 1 });
   decisionOpen = true;
   setDecisionLayerVisible(true);
   const deltaColor = dayDelta >= 0 ? "var(--green)" : "var(--red)";
   const deltaSign = dayDelta >= 0 ? "+" : "";
-  const mainCause = defaults > 0
+  const mainCause = service.lost > 0
+    ? `${service.served} customers were served and ${service.lost} left the queue.`
+    : defaults > 0
     ? `${fmt(defaults)} was lost to loan defaults.`
     : loanMetrics.interestIncome > rent + wages + depInt
       ? "Loan income covered the bank's daily costs."
@@ -222,8 +285,8 @@ function renderEndOfDay(report) {
     <div class="day-summary-grid">
       <div><span>Closing cash</span><strong>${fmt(bank.cash)}</strong></div>
       <div><span>Net capital</span><strong>${fmt(netWorth())}</strong></div>
-      <div><span>Appointments</span><strong>${BankOperations.dailyAppointmentTarget(bank)} completed</strong></div>
-      <div><span>Returning faces</span><strong>${bank.dayMetrics.returningCustomers || 0}</strong></div>
+      <div><span>Customers served</span><strong>${service.served} · goal ${BankOperations.dailyServiceGoal(bank)}</strong></div>
+      <div><span>Service accuracy</span><strong>${service.accuracy}%</strong></div>
     </div>
     <div class="next-obligation"><span>Next known obligation</span><strong>${fmt(nextDebt.amount)} debt payment in ${nextDebt.dueInDays} day${nextDebt.dueInDays === 1 ? "" : "s"}</strong></div>
     ${renderTownReportThread()}
@@ -233,6 +296,9 @@ function renderEndOfDay(report) {
         <div class="eod-row"><span class="key">Loan payments received</span><span>+${fmt(loanMetrics.received)} of ${fmt(loanMetrics.due)} due</span></div>
         <div class="eod-row"><span class="key">Loan interest earned</span><span>+${fmt(loanMetrics.interestIncome)}</span></div>
         <div class="eod-row"><span class="key">Fees earned</span><span>+${fmt(bank.dayMetrics.fees)}</span></div>
+        <div class="eod-row"><span class="key">Service quality</span><span>${service.perfect} perfect · ${service.steady} steady · ${service.rushed} rushed</span></div>
+        <div class="eod-row"><span class="key">Customers lost</span><span>${service.lost}</span></div>
+        <div class="eod-row"><span class="key">Returning faces</span><span>${bank.dayMetrics.returningCustomers || 0}</span></div>
         <div class="eod-row"><span class="key">Deposit interest</span><span>-${fmt(depInt)}</span></div>
         <div class="eod-row"><span class="key">Rent & operations</span><span>-${fmt(rent)}</span></div>
         <div class="eod-row"><span class="key">Staff wages</span><span>-${fmt(wages)}</span></div>
@@ -242,9 +308,11 @@ function renderEndOfDay(report) {
         <div class="eod-row"><span class="key">Loan portfolio</span><span>${fmt(portfolio.balance)} outstanding · ${fmt(portfolio.expectedLoss)} expected loss</span></div>
       </div>
     </details>
+    ${renderAfterHoursTownChoice(report.townMomentId)}
+    ${renderAfterHoursWorldChoice(report.afterHoursWorldEventId)}
     ${typeof renderEndOfDayReward === "function" ? renderEndOfDayReward() : ""}
     <div class="btn-row one-col">
-      <button class="btn btn-green" onclick="startNextDay()">Open for ${gameDate(bank.day + 1)} →</button>
+      <button class="btn btn-green" onclick="startNextDay()" ${report.townMomentId || report.afterHoursWorldEventId ? "disabled" : ""}>${report.townMomentId || report.afterHoursWorldEventId ? "Resolve the after-hours choice to close the day" : `Open for ${gameDate(bank.day + 1)} →`}</button>
     </div>`;
   card.scrollTop = 0;
   document.getElementById("dots").innerHTML = "";
@@ -298,11 +366,11 @@ function showSilverCreekConclusion() {
     </div>
     <div class="legacy-metrics">
       <div><span>Closing net capital</span><strong>${fmt(summary.metrics.netCapital)}</strong></div>
-      <div><span>Appointments served</span><strong>${summary.metrics.customersServed}</strong></div>
+      <div><span>Customers served</span><strong>${summary.metrics.customersServed}</strong></div>
       <div><span>Familiar neighbors</span><strong>${summary.metrics.knownCustomers}</strong></div>
       <div><span>Trusted relationships</span><strong>${summary.metrics.trustedCustomers}</strong></div>
-      <div><span>Loans approved</span><strong>${summary.metrics.loansApproved}</strong></div>
-      <div><span>Loans declined</span><strong>${summary.metrics.loansDenied}</strong></div>
+      <div><span>Loans prepared</span><strong>${summary.metrics.loansPrepared}</strong></div>
+      <div><span>Perfect service</span><strong>${summary.metrics.perfectServices}</strong></div>
     </div>
     <div class="legacy-story silver-creek-ending">
       <article><span>Your town-defining choice</span><strong>${summary.headline}</strong><p>${summary.epilogue}</p></article>
@@ -327,8 +395,50 @@ function closeLegacyConclusion() {
   BankAudio.play("uiClose");
 }
 
+function renderServiceEvent(event, serviceState) {
+  const card = document.getElementById("eventCard");
+  if (!card || !event || !serviceState) return;
+  const stepCount = serviceState.definition.steps.length;
+  const currentStep = serviceState.definition.steps[serviceState.stepIndex];
+  const completed = serviceState.judgments.map((judgment, index) =>
+    `<li class="done ${judgment.id}"><span>${index + 1}</span>${serviceState.definition.steps[index]}<strong>${judgment.label}</strong></li>`
+  ).join("");
+  const upcoming = serviceState.definition.steps.slice(serviceState.stepIndex + 1).map((step, offset) =>
+    `<li><span>${serviceState.stepIndex + offset + 2}</span>${step}</li>`
+  ).join("");
+  card.classList.add("service-active");
+  card.innerHTML = `
+    <div class="event-head service-head">
+      <div class="event-icon">${serviceState.definition.icon}</div>
+      <div class="event-meta">
+        <div class="type">Live service · Step ${serviceState.stepIndex + 1} of ${stepCount}</div>
+        <div class="title">${event.title}</div>
+      </div>
+      <span class="service-request-label">${serviceState.definition.label}${event.summary?.amount ? ` · ${event.summary.amount}` : ""}</span>
+    </div>
+    <p class="service-customer-need">${event.story || "A customer is waiting at the wicket."}</p>
+    <ol class="service-step-list">
+      ${completed}
+      <li class="current"><span>${serviceState.stepIndex + 1}</span>${currentStep}<strong>Now</strong></li>
+      ${upcoming}
+    </ol>
+    <div class="service-timing-wrap">
+      <div class="service-timing-copy"><strong>${currentStep}</strong><span>Tap inside the green zone</span></div>
+      <div class="service-timing-track" aria-label="Timing bar">
+        <div class="service-timing-good" style="left:${(serviceState.target - 0.16) * 100}%;width:32%"></div>
+        <div class="service-timing-perfect" style="left:${(serviceState.target - 0.065) * 100}%;width:13%"></div>
+        <div class="service-timing-marker" id="serviceTimingMarker" style="left:${serviceState.position * 100}%"></div>
+      </div>
+      <div class="service-hit-feedback" id="serviceHitFeedback" aria-live="polite"></div>
+    </div>
+    <button class="btn btn-green service-action-btn" onclick="performServiceStep()">Do it now</button>
+    <div class="service-quality-key"><span>Perfect: bonus fee + standing</span><span>Misses still progress</span></div>`;
+  card.scrollTop = 0;
+}
+
 function renderEvent() {
   const card = document.getElementById("eventCard");
+  card.classList.remove("service-active");
   const activeCustomer = branchState?.customers?.find(c => c.id === branchState.activeDecisionCustomerId);
   const ev = activeCustomer?.event || queue[qIdx];
 
